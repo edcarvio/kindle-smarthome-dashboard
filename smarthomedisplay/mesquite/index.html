@@ -1,0 +1,166 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/index.css">
+    <title>Kindle Dashboard</title>
+    <script>
+        if(window.kindle) {
+            // Set orientation as quickly as possible when loading the page
+            kindle.device.setOrientation('landscapeLeft');
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="vertical-section left">
+            <!-- Weather -->
+            <div class="weatherWidget widget" id="weatherWidget">
+                <div class="forecast">
+                    <div class="day">-</div>
+                    <div class="img"><img src=""></div>
+                    <div><span class="temp">-</span><span class="temp-sm">-</span></div>
+                </div>
+                <div class="forecast">
+                    <div class="day">-</div>
+                    <div class="img"><img src=""></div>
+                    <div><span class="temp">-</span><span class="temp-sm">-</span></div>
+                </div>
+                <div class="forecast">
+                    <div class="day">-</div>
+                    <div class="img"><img src=""></div>
+                    <div><span class="temp">-</span><span class="temp-sm">-</span></div>
+                </div>
+                <div class="forecast">
+                    <div class="day">-</div>
+                    <div class="img"><img src=""></div>
+                    <div><span class="temp">-</span><span class="temp-sm">-</span></div>
+                </div>
+                <div class="forecast">
+                    <div class="day">-</div>
+                    <div class="img"><img src=""></div>
+                    <div><span class="temp">-</span><span class="temp-sm">-</span></div>
+                </div>
+            </div>
+
+            <!-- Badges -->
+            <div class="badgesWidget widget">
+                <div class="badge" data-entity-id="sensor.tablet_battery_level" data-val-type="battery">
+                    <div class="icon"><img src="img/badges/battery-100.svg"></div>
+                    <div class="col">
+                        <div class="title">Tablet</div>
+                        <div class="value"><span class="val">-</span><span class="val-unit">%</span></div>
+                    </div>
+                </div>
+                <div class="badge" data-entity-id="sensor.handy_battery_level" data-val-type="battery">
+                    <div class="icon"><img src="img/badges/battery-100.svg"></div>
+                    <div class="col">
+                        <div class="title">Handy</div>
+                        <div class="value"><span class="val">-</span><span class="val-unit">%</span></div>
+                    </div>
+                </div>
+                <div class="badge" data-entity-id="automation.kamera_eingang_benachrichtigungen" data-val-type="last-triggered">
+                    <div class="icon"><img src="img/badges/motion.svg"></div>
+                    <div class="col">
+                        <div class="title">Eingang</div>
+                        <div class="value">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cards -->
+            <div class="cardsWidget widget">
+                <div class="card" data-entity-id="sensor.temperatur_dominic">
+                    <div class="title">Dominic Zimmer</div>
+                    <div class="row">
+                        <div class="icon"><img src="img/cards/temp-dominic.svg"></div>
+                        <div class="value"><span class="val">-</span><span class="val-unit">°C</span></div>
+                    </div>
+                </div>
+                <div class="card" data-entity-id="sensor.temperatur_aussen">
+                    <div class="title">Außen</div>
+                    <div class="row">
+                        <div class="icon"><img src="img/cards/temp-outside.svg"></div>
+                        <div class="value"><span class="val">-</span><span class="val-unit">°C</span></div>
+                    </div>
+                </div>
+                <div class="card" data-entity-id="sensor.temperatur_badezimmer">
+                    <div class="title">Badezimmer</div>
+                    <div class="row">
+                        <div class="icon"><img src="img/cards/temp-bathroom.svg"></div>
+                        <div class="value"><span class="val">-</span><span class="val-unit">°C</span></div>
+                    </div>
+                </div>
+                <div class="card" data-entity-id="sensor.temperatur_wintergarten">
+                    <div class="title">Wintergarten</div>
+                    <div class="row">
+                        <div class="icon"><img src="img/cards/temp-wintergarten.svg"></div>
+                        <div class="value"><span class="val">-</span><span class="val-unit">°C</span></div>
+                    </div>
+                </div>
+                <div class="card card-diagram" data-entity-id="sensor.ftj4cdk01h_pv_output_actual">
+                    <div class="title">Photovoltaik Ausgangsleistung</div>
+                    <div class="row">
+                        <div class="icon"><img src="img/cards/photovoltaics-power.svg"></div>
+                        <div class="value"><span class="val">-</span><span class="val-unit">W</span></div>
+                    </div>
+                    <canvas class="graph" id="photovoltaicsChart" height="120" width="520"></canvas>
+                </div>
+            </div>
+
+        </div>
+        <div class="vertical-section right">
+            <!-- Clock -->
+            <div class="clockWidget widget">
+                <div class="time" id="clockTime">00:00</div>
+                <div class="date" id="clockDate">Mo, 1. Jan 1900</div>
+            </div>
+
+            <!-- Notifications -->
+            <div class="notificationWidget widget" id="notificationList"></div>
+
+            <!-- calendar -->
+            <div class="calendarWidget widget">
+                <div class="title">ANSTEHENDE TERMINE</div>
+                <div id="calendarList"></div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="buttonsWidget widget" id="buttonsWidget">
+                <div class="button" data-entity-id="light.dominic_zimmerlampe">
+                    <div class="icon"><img src="img/buttons/ceiling-light.svg"></div>
+                    <div class="title" style="font-size: 15px;">Zimmerlampe</div>
+                </div>
+                <div class="button" data-entity-id="switch.pc" data-entity-action="script.toggle_pc">
+                    <div class="icon"><img src="img/buttons/computer-screen.svg"></div>
+                    <div class="title">Computer</div>
+                </div>
+                <div class="button" data-entity-id="light.tischlampe_philips">
+                    <div class="icon"><img src="img/buttons/desklamp.svg"></div>
+                    <div class="title">Tischlampe</div>
+                </div>
+                <div class="button" data-entity-id="light.nachtlicht">
+                    <div class="icon"><img src="img/buttons/led-strip.svg"></div>
+                    <div class="title">Nachtlicht</div>
+                </div>
+                <div class="button" data-entity-id="light.beleuchtung_regal">
+                    <div class="icon"><img src="img/buttons/desklamp.svg"></div>
+                    <div class="title">Regal</div>
+                </div>
+                <div class="button" data-entity-id="light.beleuchtung_schrank">
+                    <div class="icon"><img src="img/buttons/led-strip.svg"></div>
+                    <div class="title">Schrank</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="refreshBox"></div>
+    
+    <script src="config.js"></script>
+    <script src="js/error-logger.js"></script>
+    <script src="js/chart.min.js"></script>
+    <script src="js/index.js"></script>
+</body>
+</html>
