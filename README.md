@@ -6,7 +6,7 @@
 ![Screenshot](images/project-picture.jpg)
 
 A private project of mine that turns a Kindle E-Book reader into a smarthome dashboard. The project is part of a much more complex home automation system, but this repo should include everything needed to get the dashboard part running. The KUAL extension is written in a quick and dirty fashion with most things hardcoded to my specific needs and I currently don't have the time and interest to make a real project out of it. I only have an old Kindle Paperwhite 2 (= 6. Generation) and that's also the only supported device. It might or might not work on other devices without some changes. Hope some people can do something with it. \
-Underlying [Reddit Post](https://www.reddit.com/user/Im1Random/submitted/)
+Underlying [Reddit Post](https://www.reddit.com/r/homeassistant/comments/1n97ox2/my_kindle_smarthome_dashboard/)
 
 ### Setup
 #### WebSocket Proxy
