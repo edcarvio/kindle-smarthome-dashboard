@@ -207,7 +207,7 @@ function updateWeather() {
     req.send();
 }
 updateWeather();
-setInterval(updateClock, 7200000); // 2h
+setInterval(updateWeather, 7200000); // 2h
 
 // Charts
 var photovoltaicsCtx = document.getElementById('photovoltaicsChart').getContext('2d');
