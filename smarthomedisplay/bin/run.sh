@@ -55,7 +55,15 @@ start_system_gui(){
     eips 1 1 "Please wait while Kindle UI is starting"
 }
 
-# Stop Kindle UI to save ressources and remove all menu bars
+# Prevent crash dump generation — tell the system this is a normal shutdown
+# KPPMainAppCrashRecovery checks for this flag file
+touch /var/local/system/KPPMainAppNormalExit 2>/dev/null
+# Disable the crash reporter upstart job if possible
+stop KPPMainAppCrashRecovery 2>/dev/null
+# Remove any existing crash dumps from documents
+find /mnt/us/documents/ -name "KPPMainApp*" -exec rm -rf {} + 2>/dev/null
+
+# Stop Kindle UI to save resources and remove all menu bars
 stop_system_gui
 # Disable screensaver/standby mode
 prevent_screensaver 1
