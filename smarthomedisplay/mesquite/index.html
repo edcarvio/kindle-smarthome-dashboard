@@ -12,6 +12,7 @@
     </script>
 </head>
 <body>
+    <div id="closeApp" class="close-app">X</div>
     <div class="container">
         <div class="vertical-section left">
             <!-- Weather -->
@@ -104,7 +105,7 @@
                     <div class="icon"><img src="img/buttons/ceiling-light.svg"></div>
                     <div class="title">Kitchen</div>
                 </div>
-                <div class="button" data-entity-id="light.live_room_switch_switch_2">
+                <div class="button" data-entity-id="light.tv_room">
                     <div class="icon"><img src="img/buttons/ceiling-light.svg"></div>
                     <div class="title">TV Room</div>
                 </div>
@@ -129,6 +130,9 @@
                     <div class="title">Donut Lamp</div>
                 </div>
             </div>
+
+            <!-- Lamp controls trigger -->
+            <div class="lampControlBtn" id="lampControlBtn">Lamp Controls</div>
 
             <!-- Shutters -->
             <div class="shuttersWidget widget">
@@ -167,6 +171,57 @@
                     <div class="intercom-status" data-entity-id="binary_sensor.comelit_incoming_call">
                         <span class="intercom-state">--</span>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Lamp picker popup -->
+    <div id="lampPicker" style="display:none;">
+        <div class="popup-overlay"></div>
+        <div class="popup-box">
+            <div class="popup-header">
+                <span class="popup-title">Lamp Controls</span>
+                <span class="popup-close" id="lampPickerClose">X</span>
+            </div>
+            <div class="popup-body">
+                <div id="lampPickerList"></div>
+            </div>
+        </div>
+    </div>
+    <!-- Light control popup -->
+    <div id="lightPopup" style="display:none;">
+        <div class="popup-overlay"></div>
+        <div class="popup-box">
+            <div class="popup-header">
+                <span class="popup-title" id="popupTitle">Light</span>
+                <span class="popup-close" id="popupClose">X</span>
+            </div>
+            <div class="popup-body">
+                <div class="popup-toggle-row" id="popupToggleRow">
+                    <div class="popup-toggle-btn popup-toggle-on" id="popupToggleOn">ON</div>
+                    <div class="popup-toggle-btn popup-toggle-off" id="popupToggleOff">OFF</div>
+                </div>
+                <div class="popup-section" id="popupBrightnessRow" style="display:none;">
+                    <div class="popup-section-title">Brightness</div>
+                    <div class="popup-slider-row">
+                        <div class="popup-slider-wrap">
+                            <input type="range" id="popupBrightness" min="1" max="255" value="128" class="popup-slider">
+                        </div>
+                        <div class="popup-val" id="popupBrightnessVal">50%</div>
+                    </div>
+                </div>
+                <div class="popup-section" id="popupColorTempRow" style="display:none;">
+                    <div class="popup-section-title">Color Temperature</div>
+                    <div class="popup-slider-row">
+                        <div class="popup-slider-wrap">
+                            <input type="range" id="popupColorTemp" min="2202" max="4000" value="2800" class="popup-slider">
+                        </div>
+                        <div class="popup-val" id="popupColorTempVal">2800K</div>
+                    </div>
+                </div>
+                <div class="popup-section" id="popupColorsRow" style="display:none;">
+                    <div class="popup-section-title">Color</div>
+                    <div class="popup-color-grid" id="popupColorGrid"></div>
                 </div>
             </div>
         </div>

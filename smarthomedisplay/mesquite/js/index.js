@@ -41,6 +41,18 @@ if(window.kindle) {
     };
 }
 
+// Close app button
+document.getElementById('closeApp').onclick = function() {
+    if(window.kindle) {
+        kindle.messaging.sendStringMessage(
+            'com.kindlemodding.utild', 'runCMD',
+            'start lab126_gui'
+        );
+    } else {
+        window.close();
+    }
+};
+
 // Clock widget — Europe/Dublin timezone (GMT/IST)
 var daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -220,7 +232,7 @@ function createTempChart(canvasId) {
                 yAxes: [{
                     display: true,
                     gridLines: { color: '#e0e0e0' },
-                    ticks: { fontSize: 11, color: '#888', callback: function(v) { return v + '°'; } }
+                    ticks: { fontSize: 11, color: '#888', stepSize: 1, callback: function(v) { if(v % 1 !== 0) return ''; return Math.round(v) + '°'; } }
                 }]
             },
             tooltips: { enabled: false },
@@ -237,6 +249,8 @@ var TEMP_OUTDOOR_ENTITY = 'sensor.f730_r_1x230v_current_outd_temp_bt1';
 
 var notificationList = document.getElementById('notificationList');
 var buttonTimers = {}, notifications = {};
+// Track entity attributes for light popup (brightness, color_temp, supported modes)
+var entityAttrs = {};
 var ws;
 function createSocket() {
     ws = new WebSocket(WS_URL);
@@ -298,6 +312,10 @@ function createSocket() {
             case 'state_change':
                 Object.keys(msg.states).forEach(function(entityId) {
                     var state = msg.states[entityId];
+                    // Store attributes for light popup controls
+                    if(state.a) {
+                        entityAttrs[entityId] = state.a;
+                    }
                     // Find all elements with this entity ID (supports combo cards with multiple spans)
                     var elements = document.querySelectorAll('[data-entity-id="'+entityId+'"]');
                     for(var ei=0; ei<elements.length; ei++) {
@@ -412,7 +430,7 @@ function createSocket() {
 }
 if(WS_URL) createSocket();
 
-// Buttons widget — toggle lights on tap
+// Buttons widget — tap to toggle, [...] button to open detail popup
 var buttons = document.querySelectorAll('#buttonsWidget .button');
 function setButtonState(button, state) {
     if(state) {
@@ -421,30 +439,331 @@ function setButtonState(button, state) {
         button.classList.remove('active');
     }
 }
+function toggleButton(button) {
+    var entityId = button.dataset.entityId;
+    if(button.classList.contains('disabled') || !ws) return;
+
+    var isActive = button.classList.contains('active');
+    if(buttonTimers[entityId]) clearTimeout(buttonTimers[entityId]);
+    buttonTimers[entityId] = setTimeout(function() {
+        setButtonState(button, isActive);
+    }, 4000);
+    setButtonState(button, !isActive);
+
+    var targetEntity = button.dataset.entityAction || entityId;
+    var domain = targetEntity.split('.')[0];
+    ws.send(JSON.stringify({
+        type: 'call_service',
+        domain: domain,
+        entityId: targetEntity,
+        service: 'toggle'
+    }));
+}
+
+// Simple tap to toggle for all buttons
 for(var i=0; i<buttons.length; i++) {
-    var button = buttons[i];
-    button.onclick = function() {
-        var button = this;
-        var entityId = button.dataset.entityId;
-        if(button.classList.contains('disabled') || !ws) return;
+    (function(button) {
+        button.onclick = function() {
+            toggleButton(button);
+        };
+    })(buttons[i]);
+}
 
-        var isActive = button.classList.contains('active');
-        if(buttonTimers[entityId]) clearTimeout(buttonTimers[entityId]);
-        buttonTimers[entityId] = setTimeout(function() {
-            setButtonState(button, isActive);
-        }, 4000);
-        setButtonState(button, !isActive);
+// Center popup vertically based on its content height
+function centerPopup(popupEl) {
+    var box = popupEl.getElementsByClassName('popup-box')[0];
+    if(!box) return;
+    box.style.marginTop = '0';
+    var h = box.offsetHeight;
+    box.style.marginTop = '-' + Math.round(h / 2) + 'px';
+}
 
-        var targetEntity = button.dataset.entityAction || entityId;
-        var domain = targetEntity.split('.')[0];
-        ws.send(JSON.stringify({
-            type: 'call_service',
-            domain: domain,
-            entityId: targetEntity,
-            service: 'toggle'
-        }));
+// Lamp picker popup
+var lampPicker = document.getElementById('lampPicker');
+var lampPickerList = document.getElementById('lampPickerList');
+var lampPickerClose = document.getElementById('lampPickerClose');
+var lampControlBtn = document.getElementById('lampControlBtn');
+
+function openLampPicker() {
+    lampPickerList.innerHTML = '';
+    for(var i = 0; i < buttons.length; i++) {
+        (function(button) {
+            var entityId = button.dataset.entityId;
+            var titleEl = button.getElementsByClassName('title')[0];
+            var name = titleEl ? titleEl.innerText : entityId;
+            var isOn = button.classList.contains('active');
+
+            var item = document.createElement('div');
+            item.className = 'lamp-picker-item';
+
+            var statusDiv = document.createElement('div');
+            statusDiv.className = 'lamp-picker-status';
+            var dot = document.createElement('div');
+            dot.className = 'lamp-picker-dot' + (isOn ? ' on' : '');
+            statusDiv.appendChild(dot);
+            item.appendChild(statusDiv);
+
+            var nameDiv = document.createElement('div');
+            nameDiv.className = 'lamp-picker-name';
+            nameDiv.innerText = name;
+            item.appendChild(nameDiv);
+
+            // Show brightness % if available
+            var attrs = entityAttrs[entityId] || {};
+            if(attrs.brightness && isOn) {
+                var infoDiv = document.createElement('div');
+                infoDiv.className = 'lamp-picker-info';
+                infoDiv.innerText = Math.round(attrs.brightness / 255 * 100) + '%';
+                item.appendChild(infoDiv);
+            }
+
+            item.onclick = function() {
+                closeLampPicker();
+                openLightPopup(entityId, name);
+            };
+
+            lampPickerList.appendChild(item);
+        })(buttons[i]);
+    }
+    lampPicker.style.display = 'block';
+    centerPopup(lampPicker);
+}
+
+function closeLampPicker() {
+    lampPicker.style.display = 'none';
+}
+
+lampControlBtn.onclick = function() { openLampPicker(); };
+lampPickerClose.onclick = function() { closeLampPicker(); };
+// Close picker when tapping overlay — use querySelectorAll to get the right one
+var pickerOverlay = lampPicker.getElementsByClassName('popup-overlay')[0];
+pickerOverlay.onclick = function() { closeLampPicker(); };
+
+// Light popup elements
+var lightPopup = document.getElementById('lightPopup');
+var popupTitle = document.getElementById('popupTitle');
+var popupClose = document.getElementById('popupClose');
+var popupToggleOn = document.getElementById('popupToggleOn');
+var popupToggleOff = document.getElementById('popupToggleOff');
+var popupBrightnessRow = document.getElementById('popupBrightnessRow');
+var popupColorTempRow = document.getElementById('popupColorTempRow');
+var popupColorsRow = document.getElementById('popupColorsRow');
+var popupColorGrid = document.getElementById('popupColorGrid');
+var popupBrightness = document.getElementById('popupBrightness');
+var popupColorTemp = document.getElementById('popupColorTemp');
+var popupBrightnessVal = document.getElementById('popupBrightnessVal');
+var popupColorTempVal = document.getElementById('popupColorTempVal');
+var popupEntityId = null;
+var popupSendTimer = null;
+var popupIsOn = false;
+
+// Color presets — labeled for e-ink (hs_color: [hue, saturation])
+var COLOR_PRESETS = [
+    { name: 'Warm',   hs: [30, 70] },
+    { name: 'Soft',   hs: [30, 40] },
+    { name: 'Day',    hs: [210, 15] },
+    { name: 'Cool',   hs: [220, 40] },
+    { name: 'Red',    hs: [0, 100] },
+    { name: 'Orange', hs: [30, 100] },
+    { name: 'Yellow', hs: [50, 100] },
+    { name: 'Green',  hs: [120, 100] },
+    { name: 'Blue',   hs: [240, 100] },
+    { name: 'Purple', hs: [280, 100] },
+    { name: 'Pink',   hs: [330, 80] },
+    { name: 'White',  hs: [0, 0] }
+];
+
+function lightHasBrightness(entityId) {
+    var attrs = entityAttrs[entityId];
+    if(!attrs || !attrs.supported_color_modes) return false;
+    var modes = attrs.supported_color_modes;
+    for(var i = 0; i < modes.length; i++) {
+        if(modes[i] !== 'onoff') return true;
+    }
+    return false;
+}
+
+function lightHasColorTemp(entityId) {
+    var attrs = entityAttrs[entityId];
+    if(!attrs || !attrs.supported_color_modes) return false;
+    var modes = attrs.supported_color_modes;
+    for(var i = 0; i < modes.length; i++) {
+        if(modes[i] === 'color_temp') return true;
+    }
+    return false;
+}
+
+function lightHasColor(entityId) {
+    var attrs = entityAttrs[entityId];
+    if(!attrs || !attrs.supported_color_modes) return false;
+    var modes = attrs.supported_color_modes;
+    for(var i = 0; i < modes.length; i++) {
+        if(modes[i] === 'xy' || modes[i] === 'hs' || modes[i] === 'rgb') return true;
+    }
+    return false;
+}
+
+function updatePopupToggle() {
+    if(popupIsOn) {
+        popupToggleOn.className = 'popup-toggle-btn popup-toggle-on active';
+        popupToggleOff.className = 'popup-toggle-btn popup-toggle-off';
+    } else {
+        popupToggleOn.className = 'popup-toggle-btn popup-toggle-on';
+        popupToggleOff.className = 'popup-toggle-btn popup-toggle-off active';
     }
 }
+
+function buildColorGrid() {
+    popupColorGrid.innerHTML = '';
+    for(var i = 0; i < COLOR_PRESETS.length; i++) {
+        (function(preset) {
+            var btn = document.createElement('div');
+            btn.className = 'popup-color-btn';
+            btn.innerText = preset.name;
+            btn.onclick = function() {
+                // Remove active from all color buttons
+                var allBtns = popupColorGrid.getElementsByClassName('popup-color-btn');
+                for(var j = 0; j < allBtns.length; j++) {
+                    allBtns[j].className = 'popup-color-btn';
+                }
+                btn.className = 'popup-color-btn active';
+                sendColorPreset(preset.hs);
+            };
+            popupColorGrid.appendChild(btn);
+        })(COLOR_PRESETS[i]);
+    }
+}
+
+function sendColorPreset(hs) {
+    if(!popupEntityId || !ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({
+        type: 'call_service',
+        domain: 'light',
+        entityId: popupEntityId,
+        service: 'turn_on',
+        data: { hs_color: hs }
+    }));
+    popupIsOn = true;
+    updatePopupToggle();
+}
+
+function openLightPopup(entityId, title) {
+    var attrs = entityAttrs[entityId] || {};
+    popupEntityId = entityId;
+    popupTitle.innerText = title;
+
+    // Determine current on/off state from the button element
+    var buttonEl = document.querySelector('.button[data-entity-id="' + entityId + '"]');
+    popupIsOn = buttonEl ? buttonEl.classList.contains('active') : false;
+    updatePopupToggle();
+
+    // Brightness
+    var hasBrightness = lightHasBrightness(entityId);
+    popupBrightnessRow.style.display = hasBrightness ? 'block' : 'none';
+    if(hasBrightness) {
+        var bri = attrs.brightness || 128;
+        popupBrightness.value = bri;
+        popupBrightnessVal.innerText = Math.round(bri / 255 * 100) + '%';
+    }
+
+    // Color temperature
+    var hasColorTemp = lightHasColorTemp(entityId);
+    popupColorTempRow.style.display = hasColorTemp ? 'block' : 'none';
+    if(hasColorTemp) {
+        var minK = attrs.min_color_temp_kelvin || 2202;
+        var maxK = attrs.max_color_temp_kelvin || 4000;
+        popupColorTemp.min = minK;
+        popupColorTemp.max = maxK;
+        var ctVal = attrs.color_temp_kelvin || Math.round((minK + maxK) / 2);
+        popupColorTemp.value = ctVal;
+        popupColorTempVal.innerText = ctVal + 'K';
+    }
+
+    // Color presets
+    var hasColor = lightHasColor(entityId);
+    popupColorsRow.style.display = hasColor ? 'block' : 'none';
+    if(hasColor) {
+        buildColorGrid();
+        // Highlight closest preset to current HS color
+        if(attrs.hs_color) {
+            var curH = attrs.hs_color[0], curS = attrs.hs_color[1];
+            var bestIdx = -1, bestDist = 9999;
+            for(var i = 0; i < COLOR_PRESETS.length; i++) {
+                var dh = Math.abs(COLOR_PRESETS[i].hs[0] - curH);
+                if(dh > 180) dh = 360 - dh;
+                var ds = Math.abs(COLOR_PRESETS[i].hs[1] - curS);
+                var dist = dh + ds;
+                if(dist < bestDist) { bestDist = dist; bestIdx = i; }
+            }
+            if(bestIdx >= 0 && bestDist < 40) {
+                var allBtns = popupColorGrid.getElementsByClassName('popup-color-btn');
+                allBtns[bestIdx].className = 'popup-color-btn active';
+            }
+        }
+    }
+
+    lightPopup.style.display = 'block';
+    centerPopup(lightPopup);
+}
+
+function closeLightPopup() {
+    lightPopup.style.display = 'none';
+    popupEntityId = null;
+    if(popupSendTimer) { clearTimeout(popupSendTimer); popupSendTimer = null; }
+}
+
+function sendLightUpdate() {
+    if(!popupEntityId || !ws || ws.readyState !== WebSocket.OPEN) return;
+    var data = {};
+    if(popupBrightnessRow.style.display !== 'none') {
+        data.brightness = parseInt(popupBrightness.value);
+    }
+    if(popupColorTempRow.style.display !== 'none') {
+        data.color_temp_kelvin = parseInt(popupColorTemp.value);
+    }
+    ws.send(JSON.stringify({
+        type: 'call_service',
+        domain: 'light',
+        entityId: popupEntityId,
+        service: 'turn_on',
+        data: data
+    }));
+    popupIsOn = true;
+    updatePopupToggle();
+}
+
+function sendToggle(turnOn) {
+    if(!popupEntityId || !ws || ws.readyState !== WebSocket.OPEN) return;
+    var domain = popupEntityId.split('.')[0];
+    ws.send(JSON.stringify({
+        type: 'call_service',
+        domain: domain,
+        entityId: popupEntityId,
+        service: turnOn ? 'turn_on' : 'turn_off'
+    }));
+    popupIsOn = turnOn;
+    updatePopupToggle();
+}
+
+// Debounce slider changes to avoid flooding the WebSocket
+function scheduleLightUpdate() {
+    if(popupSendTimer) clearTimeout(popupSendTimer);
+    popupSendTimer = setTimeout(sendLightUpdate, 300);
+}
+
+popupBrightness.onchange = function() {
+    popupBrightnessVal.innerText = Math.round(parseInt(this.value) / 255 * 100) + '%';
+    scheduleLightUpdate();
+};
+popupColorTemp.onchange = function() {
+    popupColorTempVal.innerText = this.value + 'K';
+    scheduleLightUpdate();
+};
+popupToggleOn.onclick = function() { sendToggle(true); };
+popupToggleOff.onclick = function() { sendToggle(false); };
+popupClose.onclick = function() { closeLightPopup(); };
+var lightPopupOverlay = lightPopup.getElementsByClassName('popup-overlay')[0];
+lightPopupOverlay.onclick = function() { closeLightPopup(); };
 
 // Shutter controls — Open / Stop / Close
 var shutterActions = document.querySelectorAll('.shutter-action');

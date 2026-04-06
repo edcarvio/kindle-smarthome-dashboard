@@ -12,5 +12,5 @@ arch:
 ports:
   4365/tcp: 4365
 ports_description:
-  4365/tcp: "WebSocket proxy for Kindle"
+  4365/tcp: "WebSocket/HTTP proxy for Kindle"
 homeassistant_api: true
