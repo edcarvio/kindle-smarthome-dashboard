@@ -41,12 +41,13 @@ if(window.kindle) {
     };
 }
 
-// Close app button
+// Close app button — proper shutdown: kill browser, restore UI, re-enable screensaver
 document.getElementById('closeApp').onclick = function() {
     if(window.kindle) {
+        // Kill mesquite first to prevent fullscreen freeze, then restore Kindle UI
         kindle.messaging.sendStringMessage(
             'com.kindlemodding.utild', 'runCMD',
-            'start lab126_gui'
+            'kill $(gdbus call -y -d org.freedesktop.DBus -o / -m org.freedesktop.DBus.GetConnectionUnixProcessID org.im1random.smarthomedisplay | sed -E \'s/.* ([0-9]+),.*/\\1/\'); lipc-set-prop com.lab126.powerd preventScreenSaver 0; start lab126_gui'
         );
     } else {
         window.close();
@@ -232,7 +233,7 @@ function createTempChart(canvasId) {
                 yAxes: [{
                     display: true,
                     gridLines: { color: '#e0e0e0' },
-                    ticks: { fontSize: 11, color: '#888', stepSize: 1, callback: function(v) { if(v % 1 !== 0) return ''; return Math.round(v) + '°'; } }
+                    ticks: { fontSize: 11, color: '#888', maxTicksLimit: 5, callback: function(v) { return Math.round(v) + '°'; } }
                 }]
             },
             tooltips: { enabled: false },
@@ -487,40 +488,31 @@ var lampPickerList = document.getElementById('lampPickerList');
 var lampPickerClose = document.getElementById('lampPickerClose');
 var lampControlBtn = document.getElementById('lampControlBtn');
 
+// Global function called by inline onclick in lamp picker items
+function selectLamp(entityId, name) {
+    closeLampPicker();
+    openLightPopup(entityId, name);
+}
+
 function openLampPicker() {
-    lampPickerList.innerHTML = '';
+    var html = '';
     for(var i = 0; i < buttons.length; i++) {
-        (function(button) {
-            var entityId = button.dataset.entityId;
-            var titleEl = button.getElementsByClassName('title')[0];
-            var name = titleEl ? titleEl.innerText : entityId;
-            var isOn = button.classList.contains('active');
+        var button = buttons[i];
+        var entityId = button.dataset.entityId;
+        var titleEl = button.getElementsByClassName('title')[0];
+        var name = titleEl ? titleEl.innerText : entityId;
+        var isOn = button.classList.contains('active');
+        var attrs = entityAttrs[entityId] || {};
+        var infoText = (attrs.brightness && isOn) ? Math.round(attrs.brightness / 255 * 100) + '%' : '';
+        var dotClass = 'lamp-picker-dot' + (isOn ? ' on' : '');
 
-            var attrs = entityAttrs[entityId] || {};
-            var infoText = (attrs.brightness && isOn) ? Math.round(attrs.brightness / 255 * 100) + '%' : '';
-            var dotClass = 'lamp-picker-dot' + (isOn ? ' on' : '');
-
-            var item = document.createElement('a');
-            item.href = 'javascript:void(0)';
-            item.className = 'lamp-picker-item';
-            item.innerHTML = '<div class="lamp-picker-status"><div class="' + dotClass + '"></div></div>'
-                + '<div class="lamp-picker-name">' + name + '</div>'
-                + (infoText ? '<div class="lamp-picker-info">' + infoText + '</div>' : '');
-
-            function makeItemHandler(eid, n) {
-                return function(e) {
-                    if(e && e.preventDefault) e.preventDefault();
-                    closeLampPicker();
-                    openLightPopup(eid, n);
-                };
-            }
-            var handler = makeItemHandler(entityId, name);
-            item.onclick = handler;
-            item.ontouchend = handler;
-
-            lampPickerList.appendChild(item);
-        })(buttons[i]);
+        html += '<div class="lamp-picker-item" onclick="selectLamp(\'' + entityId + '\',\'' + name + '\')">'
+            + '<div class="lamp-picker-status"><div class="' + dotClass + '"></div></div>'
+            + '<div class="lamp-picker-name">' + name + '</div>'
+            + (infoText ? '<div class="lamp-picker-info">' + infoText + '</div>' : '')
+            + '</div>';
     }
+    lampPickerList.innerHTML = html;
     lampPicker.style.display = 'block';
     centerPopup(lampPicker);
 }
@@ -569,22 +561,34 @@ var COLOR_PRESETS = [
     { name: 'White',  hs: [0, 0] }
 ];
 
+// Known light capabilities (from HA entity inspection)
+// HA removes brightness/color_temp from attributes when light is off,
+// so we can't rely on runtime attribute detection alone.
+var LIGHT_CAPS = {
+    'light.live_room_switch_switch': { brightness: false, colorTemp: false, color: false },
+    'light.tv_room':                 { brightness: true,  colorTemp: true,  color: false },
+    'light.corridor':                { brightness: true,  colorTemp: true,  color: true },
+    'light.tradfri_bulb_bedroom_light': { brightness: true, colorTemp: true, color: true },
+    'light.tradfri_bulb_office_light':  { brightness: true, colorTemp: true, color: false },
+    'light.floor_lamp':              { brightness: true,  colorTemp: false, color: false }
+};
+
 function lightHasBrightness(entityId) {
+    if(LIGHT_CAPS[entityId]) return LIGHT_CAPS[entityId].brightness;
     var attrs = entityAttrs[entityId];
     if(!attrs) return false;
-    // Check supported_color_modes if available
     if(attrs.supported_color_modes) {
         var modes = attrs.supported_color_modes;
         for(var i = 0; i < modes.length; i++) {
             if(modes[i] !== 'onoff') return true;
         }
     }
-    // Fallback: check if brightness attribute exists
     if(typeof attrs.brightness !== 'undefined') return true;
     return false;
 }
 
 function lightHasColorTemp(entityId) {
+    if(LIGHT_CAPS[entityId]) return LIGHT_CAPS[entityId].colorTemp;
     var attrs = entityAttrs[entityId];
     if(!attrs) return false;
     if(attrs.supported_color_modes) {
@@ -593,12 +597,12 @@ function lightHasColorTemp(entityId) {
             if(modes[i] === 'color_temp') return true;
         }
     }
-    // Fallback: check if color_temp attributes exist
-    if(typeof attrs.color_temp_kelvin !== 'undefined' || typeof attrs.color_temp !== 'undefined') return true;
+    if(typeof attrs.color_temp_kelvin !== 'undefined') return true;
     return false;
 }
 
 function lightHasColor(entityId) {
+    if(LIGHT_CAPS[entityId]) return LIGHT_CAPS[entityId].color;
     var attrs = entityAttrs[entityId];
     if(!attrs) return false;
     if(attrs.supported_color_modes) {
@@ -607,7 +611,6 @@ function lightHasColor(entityId) {
             if(modes[i] === 'xy' || modes[i] === 'hs' || modes[i] === 'rgb') return true;
         }
     }
-    // Fallback: check if color attributes exist
     if(attrs.hs_color || attrs.xy_color || attrs.rgb_color) return true;
     return false;
 }

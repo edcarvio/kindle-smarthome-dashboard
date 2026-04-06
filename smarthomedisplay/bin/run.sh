@@ -116,8 +116,7 @@ update_battery &
 lipc-set-prop com.lab126.appmgrd start "app://$APP_ID"
 
 # Power button refreshes screen (clears e-ink ghosting).
-# To quit: hold power button to restart the Kindle.
-# Dashboard stays always on.
+# To close the app, use the X button in the dashboard UI.
 
 script -f /dev/null -c "evtest /dev/input/event0" | while read line; do
     case "$line" in
