@@ -3,7 +3,6 @@
 import { HAModule } from './HAModule.js';
 import WebSocketConnection from 'faye-websocket';
 import http from 'node:http';
-import https from 'node:https';
 import url from 'node:url';
 
 export default class MqttClient extends HAModule {
@@ -104,87 +103,7 @@ export default class MqttClient extends HAModule {
             }
         });
 
-        // Proxy targets for KindleFetch (Kindle's old OpenSSL can't do TLS 1.3)
-        const proxyTargets = {
-            '/proxy/annas': { host: 'annas-archive.gl', port: 443 },
-            '/proxy/lgli': { host: 'libgen.li', port: 443 },
-            '/proxy/zlib': { host: 'z-lib.fm', port: 443 }
-        };
-
-        this.server = http.createServer((req, res) => {
-            let matched = null;
-            let targetPath = req.url;
-            for(let [prefix, target] of Object.entries(proxyTargets)) {
-                if(req.url.startsWith(prefix)) {
-                    matched = target;
-                    targetPath = req.url.slice(prefix.length) || '/';
-                    break;
-                }
-            }
-            if(!matched) {
-                res.writeHead(404);
-                res.end('Not found');
-                return;
-            }
-
-            var options = {
-                hostname: matched.host,
-                port: matched.port,
-                path: targetPath,
-                method: req.method,
-                headers: {
-                    'Host': matched.host,
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                    'Accept': req.headers.accept || '*/*',
-                    'Accept-Language': 'en-US,en;q=0.9'
-                }
-            };
-
-            if(req.headers['content-type']) {
-                options.headers['Content-Type'] = req.headers['content-type'];
-            }
-            if(req.headers.cookie) {
-                options.headers['Cookie'] = req.headers.cookie;
-            }
-
-            var proxyReq = https.request(options, function(proxyRes) {
-                // Forward cookies from upstream
-                var responseHeaders = { 'Content-Type': proxyRes.headers['content-type'] || 'text/html' };
-                if(proxyRes.headers['set-cookie']) {
-                    responseHeaders['Set-Cookie'] = proxyRes.headers['set-cookie'];
-                }
-                if(proxyRes.headers['content-disposition']) {
-                    responseHeaders['Content-Disposition'] = proxyRes.headers['content-disposition'];
-                }
-                if(proxyRes.headers['location']) {
-                    // Rewrite redirects to go through proxy
-                    var loc = proxyRes.headers['location'];
-                    for(var [prefix, target] of Object.entries(proxyTargets)) {
-                        if(loc.indexOf('https://' + target.host) === 0) {
-                            loc = prefix + loc.slice(('https://' + target.host).length);
-                        }
-                    }
-                    responseHeaders['Location'] = loc;
-                }
-                res.writeHead(proxyRes.statusCode, responseHeaders);
-                proxyRes.pipe(res);
-            });
-
-            proxyReq.on('error', function(err) {
-                console.error('[proxy] Error:', err.message);
-                res.writeHead(502);
-                res.end('Proxy error: ' + err.message);
-            });
-
-            proxyReq.setTimeout(30000, function() {
-                proxyReq.destroy();
-                res.writeHead(504);
-                res.end('Proxy timeout');
-            });
-
-            req.pipe(proxyReq);
-        });
-
+        this.server = http.createServer();
         this.server.on('upgrade', (request, socket, body) => {
             if(this.config.accessToken) {
                 const query = url.parse(request.url, true).query;

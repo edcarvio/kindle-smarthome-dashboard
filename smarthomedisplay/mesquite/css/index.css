@@ -394,6 +394,10 @@ html, body {
 #lampPickerList {
     text-align: center;
 }
+a.lamp-picker-item {
+    color: #000;
+    text-decoration: none;
+}
 .lamp-picker-item {
     display: inline-block;
     width: 46%;
@@ -506,7 +510,7 @@ html, body {
 }
 .popup-box {
     position: absolute;
-    top: 50%;
+    top: 20px;
     left: 50%;
     width: 520px;
     margin-left: -260px;

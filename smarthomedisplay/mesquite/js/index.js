@@ -473,9 +473,12 @@ for(var i=0; i<buttons.length; i++) {
 function centerPopup(popupEl) {
     var box = popupEl.getElementsByClassName('popup-box')[0];
     if(!box) return;
-    box.style.marginTop = '0';
-    var h = box.offsetHeight;
-    box.style.marginTop = '-' + Math.round(h / 2) + 'px';
+    setTimeout(function() {
+        var h = box.offsetHeight;
+        var screenH = window.innerHeight || 758;
+        var top = Math.max(20, Math.round((screenH - h) / 2));
+        box.style.top = top + 'px';
+    }, 10);
 }
 
 // Lamp picker popup
@@ -493,34 +496,27 @@ function openLampPicker() {
             var name = titleEl ? titleEl.innerText : entityId;
             var isOn = button.classList.contains('active');
 
-            var item = document.createElement('div');
-            item.className = 'lamp-picker-item';
-
-            var statusDiv = document.createElement('div');
-            statusDiv.className = 'lamp-picker-status';
-            var dot = document.createElement('div');
-            dot.className = 'lamp-picker-dot' + (isOn ? ' on' : '');
-            statusDiv.appendChild(dot);
-            item.appendChild(statusDiv);
-
-            var nameDiv = document.createElement('div');
-            nameDiv.className = 'lamp-picker-name';
-            nameDiv.innerText = name;
-            item.appendChild(nameDiv);
-
-            // Show brightness % if available
             var attrs = entityAttrs[entityId] || {};
-            if(attrs.brightness && isOn) {
-                var infoDiv = document.createElement('div');
-                infoDiv.className = 'lamp-picker-info';
-                infoDiv.innerText = Math.round(attrs.brightness / 255 * 100) + '%';
-                item.appendChild(infoDiv);
-            }
+            var infoText = (attrs.brightness && isOn) ? Math.round(attrs.brightness / 255 * 100) + '%' : '';
+            var dotClass = 'lamp-picker-dot' + (isOn ? ' on' : '');
 
-            item.onclick = function() {
-                closeLampPicker();
-                openLightPopup(entityId, name);
-            };
+            var item = document.createElement('a');
+            item.href = 'javascript:void(0)';
+            item.className = 'lamp-picker-item';
+            item.innerHTML = '<div class="lamp-picker-status"><div class="' + dotClass + '"></div></div>'
+                + '<div class="lamp-picker-name">' + name + '</div>'
+                + (infoText ? '<div class="lamp-picker-info">' + infoText + '</div>' : '');
+
+            function makeItemHandler(eid, n) {
+                return function(e) {
+                    if(e && e.preventDefault) e.preventDefault();
+                    closeLampPicker();
+                    openLightPopup(eid, n);
+                };
+            }
+            var handler = makeItemHandler(entityId, name);
+            item.onclick = handler;
+            item.ontouchend = handler;
 
             lampPickerList.appendChild(item);
         })(buttons[i]);
@@ -575,31 +571,44 @@ var COLOR_PRESETS = [
 
 function lightHasBrightness(entityId) {
     var attrs = entityAttrs[entityId];
-    if(!attrs || !attrs.supported_color_modes) return false;
-    var modes = attrs.supported_color_modes;
-    for(var i = 0; i < modes.length; i++) {
-        if(modes[i] !== 'onoff') return true;
+    if(!attrs) return false;
+    // Check supported_color_modes if available
+    if(attrs.supported_color_modes) {
+        var modes = attrs.supported_color_modes;
+        for(var i = 0; i < modes.length; i++) {
+            if(modes[i] !== 'onoff') return true;
+        }
     }
+    // Fallback: check if brightness attribute exists
+    if(typeof attrs.brightness !== 'undefined') return true;
     return false;
 }
 
 function lightHasColorTemp(entityId) {
     var attrs = entityAttrs[entityId];
-    if(!attrs || !attrs.supported_color_modes) return false;
-    var modes = attrs.supported_color_modes;
-    for(var i = 0; i < modes.length; i++) {
-        if(modes[i] === 'color_temp') return true;
+    if(!attrs) return false;
+    if(attrs.supported_color_modes) {
+        var modes = attrs.supported_color_modes;
+        for(var i = 0; i < modes.length; i++) {
+            if(modes[i] === 'color_temp') return true;
+        }
     }
+    // Fallback: check if color_temp attributes exist
+    if(typeof attrs.color_temp_kelvin !== 'undefined' || typeof attrs.color_temp !== 'undefined') return true;
     return false;
 }
 
 function lightHasColor(entityId) {
     var attrs = entityAttrs[entityId];
-    if(!attrs || !attrs.supported_color_modes) return false;
-    var modes = attrs.supported_color_modes;
-    for(var i = 0; i < modes.length; i++) {
-        if(modes[i] === 'xy' || modes[i] === 'hs' || modes[i] === 'rgb') return true;
+    if(!attrs) return false;
+    if(attrs.supported_color_modes) {
+        var modes = attrs.supported_color_modes;
+        for(var i = 0; i < modes.length; i++) {
+            if(modes[i] === 'xy' || modes[i] === 'hs' || modes[i] === 'rgb') return true;
+        }
     }
+    // Fallback: check if color attributes exist
+    if(attrs.hs_color || attrs.xy_color || attrs.rgb_color) return true;
     return false;
 }
 
