@@ -84,11 +84,21 @@ INSERT OR REPLACE INTO properties(handlerId,name,value)
 EOF
 
 # Battery monitor — writes level to a file the dashboard JS can read
-BATTERY_FILE="$APP_DIR/mesquite/battery.json"
+BATTERY_FILE="$APP_DIR/mesquite/battery.js"
 update_battery() {
     while true; do
-        BATT=$(lipc-get-prop com.lab126.powerd battLevel 2>/dev/null || echo "-")
-        echo "{\"level\":\"$BATT\"}" > "$BATTERY_FILE"
+        # Try multiple methods to read battery level
+        BATT=$(lipc-get-prop com.lab126.powerd battLevel 2>/dev/null)
+        if [ -z "$BATT" ] || [ "$BATT" = "" ]; then
+            BATT=$(gasgauge-info -c 2>/dev/null)
+        fi
+        if [ -z "$BATT" ] || [ "$BATT" = "" ]; then
+            BATT=$(cat /sys/devices/system/wario_battery/wario_battery0/battery_capacity 2>/dev/null)
+        fi
+        if [ -z "$BATT" ] || [ "$BATT" = "" ]; then
+            BATT="-"
+        fi
+        echo "var KINDLE_BATTERY = $BATT;" > "$BATTERY_FILE"
         sleep 60
     done
 }

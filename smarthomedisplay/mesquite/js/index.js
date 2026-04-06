@@ -110,31 +110,33 @@ function updateClock() {
 }
 updateClock();
 
-// Kindle battery — polls local file written by run.sh
-var batteryIcon = document.getElementById('batteryIcon');
-var batteryLevel = document.getElementById('batteryLevel');
-function updateBattery() {
-    var req = new XMLHttpRequest();
-    req.onreadystatechange = function() {
-        if(this.readyState != 4 || this.status != 200) return;
-        try {
-            var data = JSON.parse(this.responseText);
-            var level = parseInt(data.level);
-            batteryLevel.innerText = level + '%';
-            if(level > 60) {
-                batteryIcon.src = 'img/battery-full.svg';
-            } else if(level > 20) {
-                batteryIcon.src = 'img/battery-medium.svg';
-            } else {
-                batteryIcon.src = 'img/battery-low.svg';
-            }
-        } catch(e) {}
-    };
-    req.open('GET', 'battery.json?' + Date.now());
-    req.send();
+// Kindle battery — reads from battery.js global variable (written by run.sh)
+var batteryIconEl = document.getElementById('batteryIcon');
+var batteryLevelEl = document.getElementById('batteryLevel');
+function updateBatteryDisplay() {
+    if(typeof KINDLE_BATTERY === 'undefined' || KINDLE_BATTERY < 0) return;
+    var level = parseInt(KINDLE_BATTERY);
+    batteryLevelEl.innerText = level + '%';
+    if(level > 60) {
+        batteryIconEl.src = 'img/battery-full.svg';
+    } else if(level > 20) {
+        batteryIconEl.src = 'img/battery-medium.svg';
+    } else {
+        batteryIconEl.src = 'img/battery-low.svg';
+    }
 }
-updateBattery();
-setInterval(updateBattery, 60000);
+function reloadBattery() {
+    // Reload battery.js by injecting a new script tag
+    var s = document.createElement('script');
+    s.src = 'battery.js?' + Date.now();
+    s.onload = function() {
+        updateBatteryDisplay();
+        document.head.removeChild(s);
+    };
+    document.head.appendChild(s);
+}
+updateBatteryDisplay();
+setInterval(reloadBattery, 60000);
 
 // Weather widget — using Open-Meteo API (works worldwide)
 var weatherForecasts = document.querySelectorAll('#weatherWidget .forecast');
