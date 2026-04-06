@@ -1,0 +1,7 @@
+node_modules/
+persistentStorage.json
+
+# Sensitive config files with tokens/IPs
+websocket-proxy/config.json
+ha-addon/websocket-proxy/config.json
+smarthomedisplay/mesquite/config.js

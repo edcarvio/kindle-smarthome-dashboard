@@ -1,9 +1,10 @@
 html, body {
-    width: 1024px;
-    height: 758px;
+    width: 100%;
+    height: 100%;
     margin: 0;
-    overflow-x: hidden;
-    font-family: Arial;
+    padding: 0;
+    overflow: hidden;
+    font-family: Arial, Helvetica, sans-serif;
     position: relative;
 }
 
@@ -32,8 +33,9 @@ html, body {
     display: none;
 }
 
+/* Layout */
 .container {
-    padding: 30px;
+    padding: 30px 24px 20px 24px;
     width: 100%;
     height: 100%;
     box-sizing: border-box;
@@ -46,76 +48,102 @@ html, body {
     position: relative;
 }
 .vertical-section.left {
-    width: 58%;
-    border-right: 3px solid black;
-    padding-right: 30px;
+    width: 55%;
+    border-right: 2px solid #ccc;
+    padding-right: 20px;
 }
 .vertical-section.right {
-    width: 42%;
-    border-left: 3px solid black;
-    padding-left: 30px;
+    width: 45%;
+    padding-left: 20px;
 }
 
 .widget {
-    margin-bottom: 20px;
-}
-.weatherWidget {
-    margin-bottom: 32px;
-}
-.clockWidget {
-    margin-bottom: 40px;
-}
-.calendarWidget {
-    margin-bottom: 10px;
+    margin-bottom: 16px;
 }
 
+/* Weather */
+.weatherWidget {
+    margin-bottom: 24px;
+    text-align: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+}
 .weatherWidget .forecast {
-    font-size: 20px;
+    font-size: 18px;
     text-align: center;
     display: inline-block;
     font-weight: bold;
-    width: 98px;
+    width: 95px;
+}
+.weatherWidget .forecast .day {
+    font-size: 16px;
+    color: #555;
+    margin-bottom: 2px;
 }
 .weatherWidget .forecast .img {
-    height: 60px;
-    width: 60px;
-    margin: auto;
+    height: 50px;
+    width: 50px;
+    margin: 4px auto;
+}
+.weatherWidget .forecast .temp {
+    font-size: 20px;
 }
 .weatherWidget .forecast .temp-sm {
-    font-size: 18px;
-    color: #2e2e2e;
+    font-size: 15px;
+    color: #777;
     margin-left: 4px;
 }
+.weatherWidget .forecast .temp-sep {
+    font-size: 14px;
+    color: #aaa;
+    margin: 0 1px;
+}
 
+/* Cards — sensor tiles */
+.cardsWidget {
+    text-align: center;
+}
 .cardsWidget .card {
-    border: 2px solid black;
-    padding: 10px;
-    margin-right: 2px;
-    margin-bottom: 10px;
+    border: 2px solid #333;
+    padding: 14px 16px;
+    margin: 0 6px 10px 0;
     display: inline-block;
-    width: 232px;
-    border-radius: 6px;
+    width: 170px;
+    height: 110px;
+    border-radius: 10px;
+    vertical-align: top;
+    background: #fafafa;
+    box-sizing: border-box;
 }
 .cardsWidget .card .title {
-    font-size: 26px;
-    margin-bottom: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #333;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 .cardsWidget .card .icon {
-    width: 60px;
-    height: 60px;
+    width: 40px;
+    height: 40px;
 }
 .cardsWidget .card .icon img {
     display: block;
+    width: 40px;
+    height: 40px;
 }
 .cardsWidget .card .value {
-    font-size: 35px;
+    font-size: 28px;
     font-weight: bold;
     text-align: right;
 }
 .cardsWidget .card .val-unit {
-    font-size: 26px;
-    color: #2e2e2e;
-    margin-left: 4px;
+    font-size: 18px;
+    color: #666;
+    margin-left: 1px;
+}
+.cardsWidget .card .val-separator {
+    display: none;
 }
 .cardsWidget .card .icon, .cardsWidget .card .value {
     display: table-cell;
@@ -125,63 +153,81 @@ html, body {
     display: table;
     width: 100%;
 }
-.cardsWidget .card-diagram {
-    width: 500px;
-    position: relative;
+
+/* Combo cards — temp + humidity stacked */
+.cardsWidget .combo-card .value {
+    font-size: 22px;
+    line-height: 1.4;
+    text-align: right;
 }
-.cardsWidget .card-diagram .row {
-    margin-top: 80px;
+.cardsWidget .combo-card .val-unit {
+    font-size: 15px;
 }
-.cardsWidget .card-diagram .graph {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: -1;
+.cardsWidget .combo-card .val-separator {
+    display: block;
+    height: 0;
+    overflow: hidden;
 }
 
+/* Badges */
 .badgesWidget {
     text-align: center;
+    margin-bottom: 12px;
 }
 .badgesWidget .badge {
-    border: 2px solid black;
-    border-radius: 40px;
+    border: 2px solid #555;
+    border-radius: 30px;
     display: inline-block;
-    padding: 5px 15px 5px 8px;
-    margin-right: 8px;
+    padding: 4px 14px 4px 6px;
+    margin-right: 6px;
     line-height: 1;
-    font-size: 18px;
+    font-size: 16px;
     text-align: start;
+    background: #f5f5f5;
 }
 .badgesWidget .badge .icon {
-    height: 30px;
-    width: 30px;
+    height: 26px;
+    width: 26px;
 }
 .badgesWidget .badge .icon, .badgesWidget .badge .col {
     display: inline-block;
     vertical-align: middle;
 }
+.badgesWidget .badge .title {
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
 .badgesWidget .badge .value {
     font-weight: bold;
+    font-size: 16px;
 }
 
-
+/* Clock */
 .clockWidget {
     text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #ddd;
 }
 .clockWidget .time {
-    font-size: 80px;
+    font-size: 72px;
     font-weight: bold;
     line-height: 1;
+    letter-spacing: -2px;
 }
 .clockWidget .date {
-    font-size: 22px;
+    font-size: 20px;
+    color: #555;
+    margin-top: 4px;
 }
 
+/* Notifications */
 .notificationWidget {
     font-size: 20px;
     text-align: center;
-    height: 50px;
+    min-height: 10px;
 }
 .notificationWidget .notification {
     height: 50px;
@@ -189,61 +235,178 @@ html, body {
     display: inline-block;
     text-align: center;
 }
-.notificationWidget .text-empty {
-    color: #5f5f5f;
-}
 
-.calendarWidget {
-    height: 250px;
-    overflow-y: auto;
-    font-size: 20px;
-    padding: 10px;
-    background-color: #d8d8d8;
-    border-radius: 6px;
-}
-.calendarWidget .title {
-    font-weight: bold;
-    font-size: 24px;
-}
-.calendarWidget .event {
-    margin-top: 10px;
-}
-.calendarWidget .event .date {
-    font-weight: bold;
-}
-.calendarWidget .text-empty {
-    color: #535353;
-    padding-top: 100px;
+/* Light buttons */
+.buttonsWidget {
     text-align: center;
+    margin-bottom: 16px;
 }
-
 .buttonsWidget .button {
-    border: 2px solid black;
-    border-radius: 6px;
+    border: 2px solid #333;
+    border-radius: 8px;
     display: inline-block;
-    width: 169px;
-    font-size: 18px;
+    width: 155px;
+    font-size: 17px;
     font-weight: bold;
-    padding: 4px;
+    padding: 10px 6px;
     line-height: 1;
-    margin-bottom: 6px;
+    margin: 0 3px 8px 3px;
     cursor: pointer;
+    text-align: center;
+    background: #fff;
 }
 .buttonsWidget .button:not(.disabled).active {
-    background-color: #a2a2a2;
+    background-color: #999;
+    color: #fff;
 }
 .buttonsWidget .button.disabled {
-    opacity: 0.5;
+    opacity: 0.4;
 }
 .buttonsWidget .button .icon {
-    height: 50px;
-    width: 50px;
+    height: 40px;
+    width: 40px;
+}
+.buttonsWidget .button .icon img {
+    width: 40px;
+    height: 40px;
 }
 .buttonsWidget .button .title {
     text-align: center;
-    width: 100px;
+    width: 95px;
+    font-size: 15px;
 }
+/* Intercom */
+.intercomWidget .intercom-row {
+    border: 2px solid #333;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    display: table;
+    width: 100%;
+    box-sizing: border-box;
+    background: #fff;
+}
+.intercomWidget .intercom-icon {
+    display: table-cell;
+    vertical-align: middle;
+    width: 40px;
+}
+.intercomWidget .intercom-icon img {
+    width: 32px;
+    height: 32px;
+}
+.intercomWidget .intercom-name {
+    display: table-cell;
+    vertical-align: middle;
+    font-size: 16px;
+    font-weight: bold;
+    padding-left: 8px;
+}
+.intercomWidget .intercom-action {
+    display: table-cell;
+    vertical-align: middle;
+    text-align: right;
+}
+.intercomWidget .intercom-btn {
+    display: inline-block;
+    border: 2px solid #333;
+    border-radius: 6px;
+    padding: 8px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    background: #fff;
+    letter-spacing: 1px;
+}
+.intercomWidget .intercom-btn:active {
+    background: #999;
+    color: #fff;
+}
+.intercomWidget .intercom-status {
+    display: table-cell;
+    vertical-align: middle;
+    text-align: right;
+    font-size: 16px;
+    font-weight: bold;
+}
+.intercomWidget .intercom-state {
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: #eee;
+}
+.intercomWidget .intercom-state.ringing {
+    background: #333;
+    color: #fff;
+}
+
 .buttonsWidget .button .title, .buttonsWidget .button .icon {
     display: inline-block;
     vertical-align: middle;
+}
+
+/* Shutters */
+.shuttersWidget .shutter-row {
+    border: 2px solid #333;
+    border-radius: 8px;
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    display: table;
+    width: 100%;
+    box-sizing: border-box;
+    background: #fff;
+}
+.shuttersWidget .shutter-icon {
+    display: table-cell;
+    vertical-align: middle;
+    width: 35px;
+}
+.shuttersWidget .shutter-icon img {
+    width: 30px;
+    height: 30px;
+}
+.shuttersWidget .shutter-name {
+    display: table-cell;
+    vertical-align: middle;
+    font-size: 16px;
+    font-weight: bold;
+    padding-left: 6px;
+}
+.shuttersWidget .shutter-actions {
+    display: table-cell;
+    vertical-align: middle;
+    text-align: right;
+}
+.shuttersWidget .shutter-action {
+    display: inline-block;
+    border: 2px solid #333;
+    border-radius: 6px;
+    padding: 8px 14px;
+    margin-left: 6px;
+    cursor: pointer;
+    background: #fff;
+}
+.shuttersWidget .shutter-action:active {
+    background-color: #999;
+}
+.shuttersWidget .shutter-action img {
+    width: 32px;
+    height: 32px;
+}
+
+/* Chart */
+.chartWidget {
+    margin-top: 10px;
+    padding-top: 14px;
+    border-top: 1px solid #ddd;
+}
+.chartWidget .chart-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+}
+.chartWidget canvas {
+    width: 100% !important;
 }

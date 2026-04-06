@@ -86,19 +86,15 @@ EOF
 # Start actual app
 lipc-set-prop com.lab126.appmgrd start "app://$APP_ID"
 
-# Wait for power button press
+# Power button refreshes screen (clears e-ink ghosting).
+# To quit: hold power button to restart the Kindle.
+# Dashboard stays always on.
+
 script -f /dev/null -c "evtest /dev/input/event0" | while read line; do
     case "$line" in
         *"code 116 (Power), value 1"*)
-            # Kill app before restoring system UI to prevent it from freezing in fullscreen mode
-            echo "Power button pressed";
-            browserPid=$(gdbus call -y -d org.freedesktop.DBus -o / -m org.freedesktop.DBus.GetConnectionUnixProcessID "$APP_ID" | sed -E 's/.* ([0-9]+),.*/\1/')
-            echo "Killing PID $browserPid"
-            kill $browserPid
-
-            start_system_gui
-            prevent_screensaver 0
-            exit
+            echo "Power button: refreshing screen"
+            eips -f &> /dev/null
             ;;
     esac
 done

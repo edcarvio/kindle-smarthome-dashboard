@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="50" height="50">
+  <!-- Door frame -->
+  <rect x="14" y="6" width="22" height="38" rx="2" fill="none" stroke="#333" stroke-width="2.5"/>
+  <!-- Door handle -->
+  <circle cx="30" cy="28" r="2.5" fill="#333"/>
+  <!-- Open arrow -->
+  <path d="M38 25l8-5v10z" fill="#333"/>
+</svg>

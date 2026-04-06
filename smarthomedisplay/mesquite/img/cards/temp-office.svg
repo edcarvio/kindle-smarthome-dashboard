@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" width="60" height="60">
+  <!-- Desk -->
+  <rect x="8" y="30" width="44" height="4" rx="1" fill="#333"/>
+  <rect x="10" y="34" width="4" height="16" fill="#333"/>
+  <rect x="46" y="34" width="4" height="16" fill="#333"/>
+  <!-- Monitor -->
+  <rect x="18" y="10" width="24" height="18" rx="2" fill="none" stroke="#333" stroke-width="2.5"/>
+  <rect x="27" y="28" width="6" height="3" fill="#333"/>
+  <!-- Person silhouette -->
+  <circle cx="44" cy="18" r="4" fill="#333"/>
+  <path d="M44 22c-3 0-5 2-5 5v5h10v-5c0-3-2-5-5-5z" fill="#333"/>
+</svg>

@@ -39,14 +39,11 @@ if(window.kindle) {
             backlightTimer = null;
         }, 30000);
     };
-} else {
-    // Display device frame for debugging in regular browser
-    document.querySelector('.container').style.border = '2px solid gray';
 }
 
-// Clock widget
-var daysOfWeek = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-var months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+// Clock widget — Europe/Dublin timezone (GMT/IST)
+var daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 var clockTime = document.getElementById('clockTime'),
     clockDate = document.getElementById('clockDate');
 clockTime.onclick = function() { location.reload(); };
@@ -72,64 +69,39 @@ function formatTime(date) {
 function isMidnight(date) {
     return date.getHours() == 0 && date.getMinutes() == 0;
 }
-function getLocalDate(value) { // TZ: Europe/Berlin
+function getLocalDate(value) { // TZ: Europe/Dublin (GMT/IST)
     var date = value ? new Date(value) : new Date();
     if(date.getTimezoneOffset() != 0) return date;
 
     var year = date.getUTCFullYear();
 
-    // last Sunday in March
-    var start = new Date(Date.UTC(year, 2, 31, 1)); // March 31, 01:00 UTC
+    // Last Sunday in March at 01:00 UTC — clocks go forward
+    var start = new Date(Date.UTC(year, 2, 31, 1));
     while(start.getUTCDay() !== 0) {
         start.setUTCDate(start.getUTCDate() - 1);
     }
 
-    // last Sunday in October
-    var end = new Date(Date.UTC(year, 9, 31, 1)); // Oct 31, 01:00 UTC
+    // Last Sunday in October at 01:00 UTC — clocks go back
+    var end = new Date(Date.UTC(year, 9, 31, 1));
     while(end.getUTCDay() !== 0) {
         end.setUTCDate(end.getUTCDate() - 1);
     }
 
-    // between start and end = CEST (UTC+2), else CET (UTC+1)
-    var offset = (date >= start && date < end) ? 7200000 /* 2h */ : 3600000 /* 1h */;
+    // Between start and end = IST (UTC+1), else GMT (UTC+0)
+    var offset = (date >= start && date < end) ? 3600000 /* 1h */ : 0;
     date.setTime(date.getTime()+offset);
     return date;
 }
 function updateClock() {
     var date = getLocalDate();
     clockTime.innerText = formatTime(date);
-    clockDate.innerText = daysOfWeek[date.getDay()]+', '+date.getDate()+'. '+months[date.getMonth()]+' '+date.getFullYear();
+    clockDate.innerText = daysOfWeek[date.getDay()]+', '+date.getDate()+' '+months[date.getMonth()]+' '+date.getFullYear();
 
     // Time based events
     var hours = date.getHours(), minutes = date.getMinutes();
     if(minutes == 0) {
         if(hours == 2 || hours == 14) {
             refreshScreen();
-        }
-        if(ws && ws.readyState == WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-                type: 'fetch_history',
-                entityId: 'sensor.ftj4cdk01h_pv_output_actual'
-            }));
-            ws.send(JSON.stringify({
-                type: 'fetch_calendars',
-                calendars: DISPLAY_CALENDARS,
-                days: 14
-            }));
-        }
-    }
-
-    if(AUTO_NIGHT_MODE) {
-        if(hours >= 20 || hours < 2) {
-            if(nightMode == null || !nightMode) {
-                nightMode = true;
-                setScreenBrightness(SCREEN_BRIGHTNESS_NIGHT);
-            }
-        } else {
-            if(nightMode == null || nightMode) {
-                nightMode = false;
-                setScreenBrightness(SCREEN_BRIGHTNESS_DEFAULT);
-            }
         }
     }
 
@@ -138,106 +110,104 @@ function updateClock() {
 }
 updateClock();
 
-// Weather widget
+// Weather widget — using Open-Meteo API (works worldwide)
 var weatherForecasts = document.querySelectorAll('#weatherWidget .forecast');
+
+// WMO weather code to icon mapping
+function wmoCodeToIcon(code) {
+    if(code <= 1) return 'clear';
+    if(code <= 3) return 'partly-cloudy';
+    if(code <= 48) return 'fog';
+    if(code <= 55) return 'rain';
+    if(code <= 57) return 'rain';
+    if(code <= 65) return 'rain';
+    if(code <= 67) return 'sleet';
+    if(code <= 75) return 'snow';
+    if(code == 77) return 'snow';
+    if(code <= 82) return 'rain';
+    if(code <= 86) return 'snow';
+    if(code >= 95) return 'thunderstorm';
+    return 'cloudy';
+}
+
 function updateWeather() {
-    var date = getLocalDate();
-    var dateStart = date.toISOString().split('T')[0];
-    date.setDate(date.getDate() + 4);
-    var dateEnd = date.toISOString().split('T')[0]+'T23:59:59';
+    var url = 'https://api.open-meteo.com/v1/forecast?latitude='+WEATHER_LAT+'&longitude='+WEATHER_LON
+        +'&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Europe%2FDublin&forecast_days=5';
 
     var req = new XMLHttpRequest();
     req.onreadystatechange = function() {
         if(this.readyState != 4 || this.status != 200) return;
 
-        var weatherByDate = {};
-        var apiData = JSON.parse(this.responseText);
-        apiData.weather.forEach(function(entry) {
-            var entryDate = entry.timestamp.split('T')[0];
-            if(weatherByDate[entryDate]) {
-                weatherByDate[entryDate].temp_max = Math.max(weatherByDate[entryDate].temp_max, entry.temperature);
-                weatherByDate[entryDate].temp_min = Math.min(weatherByDate[entryDate].temp_min, entry.temperature);
-            } else {
-                weatherByDate[entryDate] = {
-                    temp_min: entry.temperature,
-                    temp_max: entry.temperature,
-                    icon: {
-                        thunderstorm: 0,
-                        hail: 0,
-                        snow: 0,
-                        sleet: 0,
-                        rain: 0,
-                        wind: 0,
-                        fog: 0,
-                        cloudy: 0,
-                        'partly-cloudy': 0,
-                        clear: 0
-                    }
-                };
-            }
-            
-            var dateEntry = weatherByDate[entryDate];
-            entry.icon = entry.icon.replace(/-day|-night/, '');
-            if(entry.icon) dateEntry.icon[entry.icon]++;
-        });
+        var data = JSON.parse(this.responseText);
+        var daily = data.daily;
 
-        var i = 0;
-        for(var entryDate in weatherByDate) {
-            var entry = weatherByDate[entryDate];
-            var dayIcon = null;
-            var highestValue = -Infinity;
+        for(var i = 0; i < daily.time.length && i < 5; i++) {
+            // Parse date manually for old WebKit compatibility
+            var parts = daily.time[i].split('-');
+            var date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 12, 0, 0);
+            var dayIndex = date.getDay();
+            var icon = wmoCodeToIcon(daily.weather_code[i]);
+            var dayName = (i == 0) ? 'Today' : (daysOfWeek[dayIndex] || daily.time[i].slice(5));
 
-            for(var icon in entry.icon) {
-                if(entry.icon[icon] > highestValue) {
-                    highestValue = entry.icon[icon];
-                    dayIcon = icon;
-                }
-            }
-
-            var dayIndex = getLocalDate(entryDate.replace(/-/g, '/')).getDay();
             var forecastElement = weatherForecasts[i];
-            forecastElement.getElementsByClassName('day')[0].innerText = (i == 0) ? 'Heute' : daysOfWeek[dayIndex];
-            forecastElement.getElementsByTagName('img')[0].src = 'img/weather/'+dayIcon+'.svg';
-            forecastElement.getElementsByClassName('temp')[0].innerText = entry.temp_max;
-            forecastElement.getElementsByClassName('temp-sm')[0].innerText = entry.temp_min;
-            i++;
+            forecastElement.getElementsByClassName('day')[0].innerText = dayName;
+            forecastElement.getElementsByTagName('img')[0].src = 'img/weather/'+icon+'.svg';
+            forecastElement.getElementsByClassName('temp')[0].innerText = Math.round(daily.temperature_2m_max[i]) + '°';
+            forecastElement.getElementsByClassName('temp-sm')[0].innerText = Math.round(daily.temperature_2m_min[i]) + '°';
         }
     };
-    req.open('GET', 'https://api.brightsky.dev/weather?date='+dateStart+'&last_date='+dateEnd+'&'+WEATHER_PARAMS);
+    req.open('GET', url);
     req.send();
 }
 updateWeather();
 setInterval(updateWeather, 7200000); // 2h
 
-// Charts
-var photovoltaicsCtx = document.getElementById('photovoltaicsChart').getContext('2d');
-var photovoltaicsChart = new Chart(photovoltaicsCtx, {
-    type: 'line',
-    data: {
-      labels: [],
-      datasets: [{
-        data: [],
-        fill: true,
-        borderColor: '#474747',
-        backgroundColor: '#a2a2a2'
-      }]
-    },
-    options: {
-        responsive: false,
-        legend: {
-            display: false
+// Temperature history charts
+function createTempChart(canvasId) {
+    var ctx = document.getElementById(canvasId).getContext('2d');
+    return new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                data: [],
+                fill: true,
+                borderColor: '#333',
+                backgroundColor: 'rgba(0,0,0,0.06)',
+                borderWidth: 2,
+                pointRadius: 0,
+                tension: 0.3
+            }]
         },
-        scales: {
-            xAxes: [{ display: false }],
-            yAxes: [{ display: false }]
-        },
-        tooltips: { enabled: false },
-        hover: { mode: null },
-        animation: { duration: 0 }
-    }
-});
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            legend: { display: false },
+            scales: {
+                xAxes: [{
+                    display: true,
+                    gridLines: { color: '#e0e0e0' },
+                    ticks: { fontSize: 11, color: '#888', maxTicksLimit: 6 }
+                }],
+                yAxes: [{
+                    display: true,
+                    gridLines: { color: '#e0e0e0' },
+                    ticks: { fontSize: 11, color: '#888', callback: function(v) { return v + '°'; } }
+                }]
+            },
+            tooltips: { enabled: false },
+            hover: { mode: null },
+            animation: { duration: 0 }
+        }
+    });
+}
+var indoorChart = createTempChart('indoorChart');
+var outdoorChart = createTempChart('outdoorChart');
 
-var calendarList = document.getElementById('calendarList'), notificationList = document.getElementById('notificationList');
+var TEMP_INDOOR_ENTITY = 'sensor.f730_r_1x230v_room_temperature_bt50';
+var TEMP_OUTDOOR_ENTITY = 'sensor.f730_r_1x230v_current_outd_temp_bt1';
+
+var notificationList = document.getElementById('notificationList');
 var buttonTimers = {}, notifications = {};
 var ws;
 function createSocket() {
@@ -259,7 +229,7 @@ function createSocket() {
         }, 10000);
 
         var dataEntities = document.querySelectorAll('[data-entity-id]');
-        var subscribeEntities = ['input_button.kindle_display_refresh', 'input_button.kindle_display_reload_page', 'input_number.kindle_display_brightness']; // Helper buttons
+        var subscribeEntities = [];
         for(var i=0; i<dataEntities.length; i++) {
             subscribeEntities.push(dataEntities[i].dataset.entityId);
         }
@@ -273,15 +243,21 @@ function createSocket() {
             name: 'kindle_display',
             data: { action: 'init' }
         }));
-        ws.send(JSON.stringify({
-            type: 'fetch_history',
-            entityId: 'sensor.ftj4cdk01h_pv_output_actual'
-        }));
-        ws.send(JSON.stringify({
-            type: 'fetch_calendars',
-            calendars: DISPLAY_CALENDARS,
-            days: 14
-        }));
+        // Fetch temperature history for both sensors
+        function fetchHistory() {
+            if(!ws || ws.readyState !== WebSocket.OPEN) return;
+            ws.send(JSON.stringify({
+                type: 'fetch_history',
+                entityId: TEMP_INDOOR_ENTITY
+            }));
+            ws.send(JSON.stringify({
+                type: 'fetch_history',
+                entityId: TEMP_OUTDOOR_ENTITY
+            }));
+        }
+        fetchHistory();
+        // Refresh charts every 30 minutes
+        setInterval(fetchHistory, 1800000);
     };
 
     ws.onmessage = function(event) {
@@ -292,40 +268,35 @@ function createSocket() {
         var msg = JSON.parse(event.data);
         switch(msg.type) {
             case 'state_change':
-                if(!msg.firstUpdate) {
-                    if(msg.states['input_button.kindle_display_refresh']) {
-                        refreshScreen();
-                        break;
-                    } else if(msg.states['input_button.kindle_display_reload_page']) {
-                        window.location.reload();
-                        break;
-                    } else if(msg.states['input_number.kindle_display_brightness']) {
-                        var brightness = parseInt(msg.states['input_number.kindle_display_brightness'].s);
-                        setScreenBrightness(brightness);
-                    }
-                }
                 Object.keys(msg.states).forEach(function(entityId) {
                     var state = msg.states[entityId];
-                    var element = document.querySelector('[data-entity-id="'+entityId+'"]');
-                    if(!element) return;
+                    // Find all elements with this entity ID (supports combo cards with multiple spans)
+                    var elements = document.querySelectorAll('[data-entity-id="'+entityId+'"]');
+                    for(var ei=0; ei<elements.length; ei++) {
+                    var element = elements[ei];
+                    if(!element) continue;
                     if(element.classList.contains('badge')) {
                         // Badge
                         if(element.dataset.valType == 'battery') {
                             element.getElementsByTagName('img')[0].src = 'img/badges/battery-'+(Math.ceil((state.s||1) / 20) * 20)+'.svg';
                             element.getElementsByClassName('val')[0].innerText = state.s;
+                        } else if(element.dataset.valType == 'value') {
+                            element.getElementsByClassName('val')[0].innerText = state.s;
                         } else if(element.dataset.valType == 'last-triggered' && state.a.last_triggered) {
                             var lastTriggered = getLocalDate(state.a.last_triggered.replace(/-/g, '/').replace('T', ' ').split('.')[0]+' UTC');
-                            /*var timeDifference = Date.now() - lastTriggered.getTime();
-                            element.getElementsByClassName('value')[0].innerText = formatDuration(Math.floor(timeDifference/1000));*/
                             element.getElementsByClassName('value')[0].innerText = formatTime(lastTriggered);
                         }
+                    } else if(element.tagName == 'SPAN' && element.classList.contains('val')) {
+                        // Combo card inline value
+                        element.innerText = (state.s == 'unavailable' || state.s == 'unknown') ? '-/-' : state.s;
                     } else if(element.classList.contains('card')) {
                         // Card
                         element.getElementsByClassName('val')[0].innerText = (state.s == 'unavailable' || state.s == 'unknown') ? '-/-' : state.s;
                     } else if(element.classList.contains('button')) {
-                        // Button
+                        // Button (lights + covers)
                         if(buttonTimers[entityId]) clearTimeout(buttonTimers[entityId]);
-                        if(state.s == 'on') {
+                        var isOn = (state.s == 'on' || state.s == 'open');
+                        if(isOn) {
                             element.classList.add('active');
                         } else {
                             element.classList.remove('active');
@@ -335,46 +306,31 @@ function createSocket() {
                         } else {
                             element.classList.remove('disabled');
                         }
+                    } else if(element.classList.contains('intercom-status')) {
+                        // Intercom call status
+                        updateIntercomStatus(entityId, state);
                     }
+                    } // end for loop over elements
                 });
                 break;
             case 'history':
-                if(msg.history['sensor.ftj4cdk01h_pv_output_actual']) {
-                    var datapoints = msg.history['sensor.ftj4cdk01h_pv_output_actual'];
-                    photovoltaicsChart.data.labels = [];
-                    photovoltaicsChart.data.datasets[0].data = [];
-                    for(var i=0; i<datapoints.length; i++) {
-                        photovoltaicsChart.data.labels.push(i);
-                        photovoltaicsChart.data.datasets[0].data.push(datapoints[i].mean);
+                function fillChart(chart, datapoints) {
+                    chart.data.labels = [];
+                    chart.data.datasets[0].data = [];
+                    var now = getLocalDate();
+                    var startHour = now.getHours() - datapoints.length + 1;
+                    for(var hi=0; hi<datapoints.length; hi++) {
+                        var h = ((startHour + hi) % 24 + 24) % 24;
+                        chart.data.labels.push(padTime(h) + ':00');
+                        chart.data.datasets[0].data.push(datapoints[hi].mean);
                     }
-                    photovoltaicsChart.update();
+                    chart.update();
                 }
-                break;
-            case 'calendars':
-                if(msg.events.length == 0) {
-                    // Trying to prevent ghosting
-                    if(calendarList.innerText != 'Keine anstehenden Termine') {
-                        calendarList.innerHTML = '<div class="text-empty">Keine anstehenden Termine</div>';
-                    }
-                } else {
-                    calendarList.innerHTML = '';
+                if(msg.history[TEMP_INDOOR_ENTITY]) {
+                    fillChart(indoorChart, msg.history[TEMP_INDOOR_ENTITY]);
                 }
-                for(var i=0; i<msg.events.length; i++) {
-                    var event = msg.events[i];
-                    var startDate = getLocalDate(event.start),
-                        endDate = getLocalDate(event.end);
-                    var eventEntry = document.createElement('div');
-                    eventEntry.classList.add('event');
-                    var dateHtml = '<div class="date">' + daysOfWeek[startDate.getDay()]+', '+startDate.getDate()+'. '+months[startDate.getMonth()];
-                    if(startDate.getDate() != endDate.getDate() && !isMidnight(endDate)) {
-                        // Event lasts longer than 1 day
-                        dateHtml += ' - ' + daysOfWeek[endDate.getDay()]+', '+endDate.getDate()+'. '+months[endDate.getMonth()];
-                    } else {
-                        // Event starts and ends on one day
-                        if(!isMidnight(startDate) && !isMidnight(endDate)) dateHtml += ' | '+formatTime(startDate)+' - '+formatTime(endDate);
-                    }
-                    eventEntry.innerHTML = dateHtml+'</div><div class="description">'+event.summary+'</div>';
-                    calendarList.appendChild(eventEntry);
+                if(msg.history[TEMP_OUTDOOR_ENTITY]) {
+                    fillChart(outdoorChart, msg.history[TEMP_OUTDOOR_ENTITY]);
                 }
                 break;
             case 'event':
@@ -391,13 +347,13 @@ function createSocket() {
                                     delete notifications[id];
                                 }, msg.data.timeout);
                             }
-    
+
                             var element = document.createElement('div');
                             element.classList.add('notification');
                             element.innerHTML = '<img src="'+notification.icon+'">';
                             notificationList.appendChild(element);
                             notification.element = element;
-    
+
                             notifications[id] = notification;
                         }
                     } else if(msg.data.action == 'delete_notification' && msg.data.id) {
@@ -428,7 +384,7 @@ function createSocket() {
 }
 if(WS_URL) createSocket();
 
-// Buttons widget
+// Buttons widget — toggle lights on tap
 var buttons = document.querySelectorAll('#buttonsWidget .button');
 function setButtonState(button, state) {
     if(state) {
@@ -451,10 +407,65 @@ for(var i=0; i<buttons.length; i++) {
         }, 4000);
         setButtonState(button, !isActive);
 
+        var targetEntity = button.dataset.entityAction || entityId;
+        var domain = targetEntity.split('.')[0];
         ws.send(JSON.stringify({
             type: 'call_service',
-            entityId: button.dataset.entityAction || entityId,
+            domain: domain,
+            entityId: targetEntity,
             service: 'toggle'
         }));
+    }
+}
+
+// Shutter controls — Open / Stop / Close
+var shutterActions = document.querySelectorAll('.shutter-action');
+for(var i=0; i<shutterActions.length; i++) {
+    shutterActions[i].onclick = function() {
+        var coverId = this.dataset.cover;
+        var action = this.dataset.action;
+        if(!ws || !coverId) return;
+
+        var serviceMap = {
+            'open': 'open_cover',
+            'close': 'close_cover',
+            'stop': 'stop_cover'
+        };
+
+        ws.send(JSON.stringify({
+            type: 'call_service',
+            domain: 'cover',
+            entityId: coverId,
+            service: serviceMap[action]
+        }));
+    }
+}
+
+// Intercom — Open Door button
+var intercomBtns = document.querySelectorAll('.intercom-btn');
+for(var i=0; i<intercomBtns.length; i++) {
+    intercomBtns[i].onclick = function() {
+        var buttonEntity = this.dataset.button;
+        if(!ws || !buttonEntity) return;
+        ws.send(JSON.stringify({
+            type: 'call_service',
+            domain: 'button',
+            entityId: buttonEntity,
+            service: 'press'
+        }));
+    }
+}
+
+// Intercom — Incoming call status update
+function updateIntercomStatus(entityId, state) {
+    var el = document.querySelector('.intercom-status[data-entity-id="'+entityId+'"]');
+    if(!el) return;
+    var span = el.getElementsByClassName('intercom-state')[0];
+    if(state.s == 'on') {
+        span.innerText = 'RINGING';
+        span.className = 'intercom-state ringing';
+    } else {
+        span.innerText = 'Idle';
+        span.className = 'intercom-state';
     }
 }

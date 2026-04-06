@@ -1,0 +1,6 @@
+node_modules/
+modulesDisabled/
+config.json
+persistentStorage.json
+
+www/kindle-display/config.js

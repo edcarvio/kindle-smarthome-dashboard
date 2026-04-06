@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="50" height="50">
+  <!-- Door frame -->
+  <rect x="12" y="5" width="26" height="40" rx="3" fill="none" stroke="#333" stroke-width="2.5"/>
+  <!-- Speaker grille -->
+  <line x1="19" y1="14" x2="31" y2="14" stroke="#333" stroke-width="1.5"/>
+  <line x1="19" y1="18" x2="31" y2="18" stroke="#333" stroke-width="1.5"/>
+  <line x1="19" y1="22" x2="31" y2="22" stroke="#333" stroke-width="1.5"/>
+  <!-- Button -->
+  <circle cx="25" cy="33" r="5" fill="none" stroke="#333" stroke-width="2"/>
+  <circle cx="25" cy="33" r="2" fill="#333"/>
+</svg>

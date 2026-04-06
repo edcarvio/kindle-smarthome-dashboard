@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,8 +7,7 @@
     <title>Kindle Dashboard</title>
     <script>
         if(window.kindle) {
-            // Set orientation as quickly as possible when loading the page
-            kindle.device.setOrientation('landscapeLeft');
+            kindle.device.setOrientation('landscapeRight');
         }
     </script>
 </head>
@@ -45,69 +43,47 @@
                 </div>
             </div>
 
-            <!-- Badges -->
-            <div class="badgesWidget widget">
-                <div class="badge" data-entity-id="sensor.tablet_battery_level" data-val-type="battery">
-                    <div class="icon"><img src="img/badges/battery-100.svg"></div>
-                    <div class="col">
-                        <div class="title">Tablet</div>
-                        <div class="value"><span class="val">-</span><span class="val-unit">%</span></div>
-                    </div>
-                </div>
-                <div class="badge" data-entity-id="sensor.handy_battery_level" data-val-type="battery">
-                    <div class="icon"><img src="img/badges/battery-100.svg"></div>
-                    <div class="col">
-                        <div class="title">Handy</div>
-                        <div class="value"><span class="val">-</span><span class="val-unit">%</span></div>
-                    </div>
-                </div>
-                <div class="badge" data-entity-id="automation.kamera_eingang_benachrichtigungen" data-val-type="last-triggered">
-                    <div class="icon"><img src="img/badges/motion.svg"></div>
-                    <div class="col">
-                        <div class="title">Eingang</div>
-                        <div class="value">-</div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Cards -->
             <div class="cardsWidget widget">
-                <div class="card" data-entity-id="sensor.temperatur_dominic">
-                    <div class="title">Dominic Zimmer</div>
-                    <div class="row">
-                        <div class="icon"><img src="img/cards/temp-dominic.svg"></div>
-                        <div class="value"><span class="val">-</span><span class="val-unit">°C</span></div>
-                    </div>
-                </div>
-                <div class="card" data-entity-id="sensor.temperatur_aussen">
-                    <div class="title">Außen</div>
+                <div class="card" data-entity-id="sensor.f730_r_1x230v_current_outd_temp_bt1">
+                    <div class="title">Outdoor</div>
                     <div class="row">
                         <div class="icon"><img src="img/cards/temp-outside.svg"></div>
                         <div class="value"><span class="val">-</span><span class="val-unit">°C</span></div>
                     </div>
                 </div>
-                <div class="card" data-entity-id="sensor.temperatur_badezimmer">
-                    <div class="title">Badezimmer</div>
-                    <div class="row">
-                        <div class="icon"><img src="img/cards/temp-bathroom.svg"></div>
-                        <div class="value"><span class="val">-</span><span class="val-unit">°C</span></div>
-                    </div>
-                </div>
-                <div class="card" data-entity-id="sensor.temperatur_wintergarten">
-                    <div class="title">Wintergarten</div>
+                <div class="card combo-card">
+                    <div class="title">Living Room</div>
                     <div class="row">
                         <div class="icon"><img src="img/cards/temp-wintergarten.svg"></div>
-                        <div class="value"><span class="val">-</span><span class="val-unit">°C</span></div>
+                        <div class="value">
+                            <span class="val" data-entity-id="sensor.f730_r_1x230v_room_temperature_bt50">-</span><span class="val-unit">°C</span>
+                            <span class="val-separator"> | </span>
+                            <span class="val" data-entity-id="sensor.alpstuga_air_quality_monitor_humidity">-</span><span class="val-unit">%</span>
+                        </div>
                     </div>
                 </div>
-                <div class="card card-diagram" data-entity-id="sensor.ftj4cdk01h_pv_output_actual">
-                    <div class="title">Photovoltaik Ausgangsleistung</div>
+                <div class="card combo-card">
+                    <div class="title">Office</div>
                     <div class="row">
-                        <div class="icon"><img src="img/cards/photovoltaics-power.svg"></div>
-                        <div class="value"><span class="val">-</span><span class="val-unit">W</span></div>
+                        <div class="icon"><img src="img/cards/temp-office.svg"></div>
+                        <div class="value">
+                            <span class="val" data-entity-id="sensor.thermometer_temperature">-</span><span class="val-unit">°C</span>
+                            <span class="val-separator"> | </span>
+                            <span class="val" data-entity-id="sensor.thermometer_humidity">-</span><span class="val-unit">%</span>
+                        </div>
                     </div>
-                    <canvas class="graph" id="photovoltaicsChart" height="120" width="520"></canvas>
                 </div>
+            </div>
+
+            <!-- Temperature History Charts -->
+            <div class="chartWidget widget">
+                <div class="chart-title">Indoor (24h)</div>
+                <canvas id="indoorChart" height="140"></canvas>
+            </div>
+            <div class="chartWidget widget">
+                <div class="chart-title">Outdoor (24h)</div>
+                <canvas id="outdoorChart" height="140"></canvas>
             </div>
 
         </div>
@@ -115,49 +91,87 @@
             <!-- Clock -->
             <div class="clockWidget widget">
                 <div class="time" id="clockTime">00:00</div>
-                <div class="date" id="clockDate">Mo, 1. Jan 1900</div>
+                <div class="date" id="clockDate">Mon, 1 Jan 1900</div>
             </div>
 
             <!-- Notifications -->
             <div class="notificationWidget widget" id="notificationList"></div>
 
-            <!-- calendar -->
-            <div class="calendarWidget widget">
-                <div class="title">ANSTEHENDE TERMINE</div>
-                <div id="calendarList"></div>
-            </div>
-
             <!-- Buttons -->
             <div class="buttonsWidget widget" id="buttonsWidget">
-                <div class="button" data-entity-id="light.dominic_zimmerlampe">
+                <div class="button" data-entity-id="light.live_room_switch_switch">
                     <div class="icon"><img src="img/buttons/ceiling-light.svg"></div>
-                    <div class="title" style="font-size: 15px;">Zimmerlampe</div>
+                    <div class="title">Kitchen</div>
                 </div>
-                <div class="button" data-entity-id="switch.pc" data-entity-action="script.toggle_pc">
-                    <div class="icon"><img src="img/buttons/computer-screen.svg"></div>
-                    <div class="title">Computer</div>
+                <div class="button" data-entity-id="light.live_room_switch_switch_2">
+                    <div class="icon"><img src="img/buttons/ceiling-light.svg"></div>
+                    <div class="title">TV Room</div>
                 </div>
-                <div class="button" data-entity-id="light.tischlampe_philips">
+                <div class="button" data-entity-id="light.corridor">
+                    <div class="icon"><img src="img/buttons/ceiling-light.svg"></div>
+                    <div class="title">Corridor</div>
+                </div>
+                <div class="button" data-entity-id="light.tradfri_bulb_bedroom_light">
                     <div class="icon"><img src="img/buttons/desklamp.svg"></div>
-                    <div class="title">Tischlampe</div>
+                    <div class="title">Bedroom</div>
                 </div>
-                <div class="button" data-entity-id="light.nachtlicht">
-                    <div class="icon"><img src="img/buttons/led-strip.svg"></div>
-                    <div class="title">Nachtlicht</div>
-                </div>
-                <div class="button" data-entity-id="light.beleuchtung_regal">
+                <div class="button" data-entity-id="light.tradfri_bulb_office_light">
                     <div class="icon"><img src="img/buttons/desklamp.svg"></div>
-                    <div class="title">Regal</div>
+                    <div class="title">Office</div>
                 </div>
-                <div class="button" data-entity-id="light.beleuchtung_schrank">
-                    <div class="icon"><img src="img/buttons/led-strip.svg"></div>
-                    <div class="title">Schrank</div>
+                <div class="button" data-entity-id="light.floor_lamp">
+                    <div class="icon"><img src="img/buttons/desklamp.svg"></div>
+                    <div class="title">Floor Lamp</div>
+                </div>
+                <div class="button" data-entity-id="switch.donut_lamp">
+                    <div class="icon"><img src="img/buttons/donut-lamp.svg"></div>
+                    <div class="title">Donut Lamp</div>
+                </div>
+            </div>
+
+            <!-- Shutters -->
+            <div class="shuttersWidget widget">
+                <div class="shutter-row">
+                    <div class="shutter-icon"><img src="img/buttons/shutter.svg"></div>
+                    <div class="shutter-name">Bedroom</div>
+                    <div class="shutter-actions">
+                        <div class="shutter-action" data-cover="cover.bedroom_shutter" data-action="open"><img src="img/buttons/arrow-up.svg"></div>
+                        <div class="shutter-action" data-cover="cover.bedroom_shutter" data-action="stop"><img src="img/buttons/stop.svg"></div>
+                        <div class="shutter-action" data-cover="cover.bedroom_shutter" data-action="close"><img src="img/buttons/arrow-down.svg"></div>
+                    </div>
+                </div>
+                <div class="shutter-row">
+                    <div class="shutter-icon"><img src="img/buttons/shutter.svg"></div>
+                    <div class="shutter-name">Office</div>
+                    <div class="shutter-actions">
+                        <div class="shutter-action" data-cover="cover.office_shutter" data-action="open"><img src="img/buttons/arrow-up.svg"></div>
+                        <div class="shutter-action" data-cover="cover.office_shutter" data-action="stop"><img src="img/buttons/stop.svg"></div>
+                        <div class="shutter-action" data-cover="cover.office_shutter" data-action="close"><img src="img/buttons/arrow-down.svg"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Intercom -->
+            <div class="intercomWidget widget">
+                <div class="intercom-row">
+                    <div class="intercom-icon"><img src="img/buttons/door-open.svg"></div>
+                    <div class="intercom-name">Open Door</div>
+                    <div class="intercom-action">
+                        <div class="intercom-btn" data-button="button.comelit_open_door">PRESS</div>
+                    </div>
+                </div>
+                <div class="intercom-row">
+                    <div class="intercom-icon"><img src="img/buttons/intercom.svg"></div>
+                    <div class="intercom-name">Intercom Call</div>
+                    <div class="intercom-status" data-entity-id="binary_sensor.comelit_incoming_call">
+                        <span class="intercom-state">--</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
     <div id="refreshBox"></div>
-    
+
     <script src="config.js"></script>
     <script src="js/error-logger.js"></script>
     <script src="js/chart.min.js"></script>

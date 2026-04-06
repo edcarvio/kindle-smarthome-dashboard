@@ -1,0 +1,16 @@
+name: "Kindle Dashboard Proxy"
+description: "WebSocket proxy for Kindle SmartHome Dashboard"
+version: "1.0.0"
+slug: "kindle-dashboard-proxy"
+init: false
+arch:
+  - aarch64
+  - amd64
+  - armv7
+  - armhf
+  - i386
+ports:
+  4365/tcp: 4365
+ports_description:
+  4365/tcp: "WebSocket proxy for Kindle"
+homeassistant_api: true
