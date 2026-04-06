@@ -167,16 +167,6 @@ The JS automatically extracts domain from entity ID for the correct service call
 - Short press: screen refresh (`eips -f`)
 - Long hold: Kindle hardware restart (exits dashboard, returns to normal Kindle UI)
 
-## Available SVG Icons
-
-**Buttons:** `ceiling-light`, `computer-screen`, `desklamp`, `led-strip`, `donut-lamp`, `shutter`, `arrow-up`, `arrow-down`, `stop`, `door-open`, `intercom`
-
-**Cards:** `temp-outside`, `temp-office`, `temp-wintergarten`
-
-**Weather:** `clear`, `partly-cloudy`, `cloudy`, `fog`, `rain`, `snow`, `sleet`, `hail`, `thunderstorm`, `wind`
-
-To add a new icon: create an SVG in the appropriate `img/` subdirectory. Keep it simple (e-ink friendly), use `fill="#333"` and `stroke="#333"`.
-
 ## HA Entities Currently on Dashboard
 
 **Lights/Switches:** kitchen, tv_room, corridor, bedroom, office, floor_lamp, donut_lamp

@@ -1,27 +1,47 @@
 # Kindle SmartHome Dashboard
 
-> [!WARNING]  
-> This is not a finished project and will likely never be. See it only as a base for creating your own projects.
+An interactive Home Assistant dashboard running on a jailbroken Kindle PW3 (e-ink). Forked from [1RandomDev/kindle-smarthome-dashboard](https://github.com/1RandomDev/kindle-smarthome-dashboard), customized for a Dublin-based smart home.
 
-![Screenshot](images/project-picture.jpg)
+![Dashboard](images/project-picture.jpg)
 
-A private project of mine that turns a Kindle E-Book reader into a smarthome dashboard. The project is part of a much more complex home automation system, but this repo should include everything needed to get the dashboard part running. The KUAL extension is written in a quick and dirty fashion with most things hardcoded to my specific needs and I currently don't have the time and interest to make a real project out of it. I only have an old Kindle Paperwhite 2 (= 6. Generation) and that's also the only supported device. It might or might not work on other devices without some changes. Hope some people can do something with it. \
-Underlying [Reddit Post](https://www.reddit.com/r/homeassistant/comments/1n97ox2/my_kindle_smarthome_dashboard/)
+### Features
+- 5-day weather forecast (Open-Meteo)
+- Temperature + humidity cards (indoor/outdoor)
+- 24h temperature history charts
+- Light/switch toggles with real-time state updates
+- Shutter controls (open/stop/close)
+- Intercom door opener + incoming call status
+- Kindle battery indicator
+- Power button refreshes e-ink screen
+
+### Architecture
+
+```
+Kindle PW3 (mesquite browser) <--WebSocket--> HA Add-on (Node.js proxy) <--WebSocket--> Home Assistant
+```
+
+The WebSocket proxy translates the Kindle's outdated WebSocket version into something Home Assistant understands.
 
 ### Setup
-#### WebSocket Proxy
-The WebSocket proxy translates the old outdated WebSocket version that the Kindle uses into something that HomeAssistant understands and performs some resource intensive operations. It can be installed on any server, I'd recommend just running it on the same machine as HomeAssistant.
-1. Copy the `websocket-proxy` directory to the target machine
-2. Copy the `config.sample.json` to `config.json` and fill in missing values.
-3. Run with `node main.js`
 
-#### KUAL Extension
-The KUAL extension includes the actual dashboard WAF and some start scripts and dependencies. Installation requires a [Jailbroken Kindle](https://kindlemodding.org/jailbreaking/) with KUAL installed.
-1. Copy the `smarthomedisplay` to the `extensions` folder on your Kindle. As with most KUAL extensions do not rename.
-2. Copy `mesquite/config.sample.js` to `mesquite/config.js` and fill in missing values
-3. Open KUAL and start using the `Launch SmartHome Display` shortcut
+#### Home Assistant Add-on (recommended)
+1. Copy the `ha-addon` directory to `/addons/kindle-dashboard-proxy` on your HA server
+2. In HA: Settings > Apps > App Store > Reload > Install **Kindle Dashboard Proxy**
+3. The add-on uses the Supervisor API token automatically — no manual token needed
 
-### Powering the device
-Since the dashboard keeps a persistent connection and prevents the Kindle from going to standby mode, the battery drains really quickly. Instead of leaving it connected to a charger all the time I would rather recommend doing a simple hardware mode that allows you to power the device without a battery. Like shown in the schematic below the 5v from the USB port are fed to the battery terminals via a diode, which will bring the voltage down to about what a full lithium battery has. Additionally lots of capacitance for voltage stabilisation and a resistor as a dummy temperature sensor are necessary to satisfy the power management chip.
+#### Manual Proxy (alternative)
+1. Copy `websocket-proxy/config.sample.json` to `config.json` and fill in your HA URL + access token
+2. Run with `node main.js`
 
-![Screenshot](images/power-mod.png)
+#### Kindle Extension
+Requires a [jailbroken Kindle](https://kindlemodding.org/jailbreaking/) with KUAL installed.
+1. Copy `smarthomedisplay` to the `extensions` folder on your Kindle
+2. Copy `mesquite/config.sample.js` to `mesquite/config.js` and set your proxy WebSocket URL
+3. Open KUAL > SmartHome Display > Launch
+
+#### Power Button
+- **Short press**: full screen refresh (clears e-ink ghosting)
+- **Long hold**: Kindle hardware restart (exits dashboard)
+
+### Based on
+[1RandomDev/kindle-smarthome-dashboard](https://github.com/1RandomDev/kindle-smarthome-dashboard) — [Reddit Post](https://www.reddit.com/r/homeassistant/comments/1n97ox2/my_kindle_smarthome_dashboard/)

@@ -222,6 +222,18 @@ html, body {
     color: #555;
     margin-top: 4px;
 }
+.clockWidget .battery {
+    font-size: 14px;
+    color: #888;
+    margin-top: 6px;
+    letter-spacing: 0.5px;
+}
+.clockWidget .battery-icon {
+    width: 22px;
+    height: 13px;
+    vertical-align: middle;
+    margin-right: 2px;
+}
 
 /* Notifications */
 .notificationWidget {

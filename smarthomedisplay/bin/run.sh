@@ -83,6 +83,17 @@ INSERT OR REPLACE INTO properties(handlerId,name,value)
   VALUES('$APP_ID','supportedOrientation','U');
 EOF
 
+# Battery monitor — writes level to a file the dashboard JS can read
+BATTERY_FILE="$APP_DIR/mesquite/battery.json"
+update_battery() {
+    while true; do
+        BATT=$(lipc-get-prop com.lab126.powerd battLevel 2>/dev/null || echo "-")
+        echo "{\"level\":\"$BATT\"}" > "$BATTERY_FILE"
+        sleep 60
+    done
+}
+update_battery &
+
 # Start actual app
 lipc-set-prop com.lab126.appmgrd start "app://$APP_ID"
 
