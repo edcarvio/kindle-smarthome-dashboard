@@ -177,14 +177,43 @@
     </div>
     <!-- Lamp picker popup -->
     <div id="lampPicker" style="display:none;">
-        <div class="popup-overlay"></div>
+        <div class="popup-overlay" onclick="closeLampPicker()"></div>
         <div class="popup-box">
             <div class="popup-header">
                 <span class="popup-title">Lamp Controls</span>
-                <span class="popup-close" id="lampPickerClose">X</span>
+                <span class="popup-close" onclick="closeLampPicker()">X</span>
             </div>
             <div class="popup-body">
-                <div id="lampPickerList"></div>
+                <div id="lampPickerList">
+                    <div class="lamp-picker-item" onclick="selectLamp('light.live_room_switch_switch','Kitchen')">
+                        <div class="lamp-picker-name">Kitchen</div>
+                        <div class="lamp-picker-status"><div class="lamp-picker-dot" data-entity-id="light.live_room_switch_switch"></div></div>
+                    </div>
+                    <div class="lamp-picker-item" onclick="selectLamp('light.tv_room','TV Room')">
+                        <div class="lamp-picker-name">TV Room</div>
+                        <div class="lamp-picker-status"><div class="lamp-picker-dot" data-entity-id="light.tv_room"></div></div>
+                    </div>
+                    <div class="lamp-picker-item" onclick="selectLamp('light.corridor','Corridor')">
+                        <div class="lamp-picker-name">Corridor</div>
+                        <div class="lamp-picker-status"><div class="lamp-picker-dot" data-entity-id="light.corridor"></div></div>
+                    </div>
+                    <div class="lamp-picker-item" onclick="selectLamp('light.tradfri_bulb_bedroom_light','Bedroom')">
+                        <div class="lamp-picker-name">Bedroom</div>
+                        <div class="lamp-picker-status"><div class="lamp-picker-dot" data-entity-id="light.tradfri_bulb_bedroom_light"></div></div>
+                    </div>
+                    <div class="lamp-picker-item" onclick="selectLamp('light.tradfri_bulb_office_light','Office')">
+                        <div class="lamp-picker-name">Office</div>
+                        <div class="lamp-picker-status"><div class="lamp-picker-dot" data-entity-id="light.tradfri_bulb_office_light"></div></div>
+                    </div>
+                    <div class="lamp-picker-item" onclick="selectLamp('light.floor_lamp','Floor Lamp')">
+                        <div class="lamp-picker-name">Floor Lamp</div>
+                        <div class="lamp-picker-status"><div class="lamp-picker-dot" data-entity-id="light.floor_lamp"></div></div>
+                    </div>
+                    <div class="lamp-picker-item" onclick="selectLamp('switch.bagel_lamp_plug','Donut Lamp')">
+                        <div class="lamp-picker-name">Donut Lamp</div>
+                        <div class="lamp-picker-status"><div class="lamp-picker-dot" data-entity-id="switch.bagel_lamp_plug"></div></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

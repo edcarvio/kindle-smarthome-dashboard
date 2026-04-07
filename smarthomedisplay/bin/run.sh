@@ -55,13 +55,44 @@ start_system_gui(){
     eips 1 1 "Please wait while Kindle UI is starting"
 }
 
-# Prevent crash dump generation — tell the system this is a normal shutdown
-# KPPMainAppCrashRecovery checks for this flag file
+# Prevent crash dump generation
 touch /var/local/system/KPPMainAppNormalExit 2>/dev/null
-# Disable the crash reporter upstart job if possible
 stop KPPMainAppCrashRecovery 2>/dev/null
-# Remove any existing crash dumps from documents
-find /mnt/us/documents/ -name "KPPMainApp*" -exec rm -rf {} + 2>/dev/null
+stop CrashReportService 2>/dev/null
+stop tmd 2>/dev/null
+
+# Timestamp for identifying crash dumps created during this session
+SESSION_START=$(date +%s)
+
+# Clean up crash dumps from this session
+cleanup_crash_dumps() {
+    find /mnt/us/documents/ -name "KPPMainApp*" -exec rm -rf {} + 2>/dev/null
+    # Remove crash logs (date-stamped .tgz/.txt/.sdr) created after session start
+    for f in /mnt/us/documents/*.tgz /mnt/us/documents/*.sdr; do
+        [ -e "$f" ] || continue
+        # Only remove files newer than session start
+        if [ "$(stat -c %Y "$f" 2>/dev/null || echo 0)" -ge "$SESSION_START" ]; then
+            rm -rf "$f"
+        fi
+    done
+    for f in /mnt/us/documents/*.txt; do
+        [ -e "$f" ] || continue
+        case "$f" in
+            *_202[0-9].txt) # crash dump pattern: date_timestamp_year.txt
+                if [ "$(stat -c %Y "$f" 2>/dev/null || echo 0)" -ge "$SESSION_START" ]; then
+                    rm -f "$f"
+                fi
+                ;;
+        esac
+    done
+}
+
+# Clean on exit — kill background job, wait for late dumps, then clean
+trap 'kill $CLEANUP_PID 2>/dev/null; sleep 2; cleanup_crash_dumps' EXIT
+
+# Background cleanup — catches dumps generated after GUI stop
+(while true; do sleep 30; cleanup_crash_dumps; done) &
+CLEANUP_PID=$!
 
 # Stop Kindle UI to save resources and remove all menu bars
 stop_system_gui
@@ -115,14 +146,18 @@ update_battery &
 # Start actual app
 lipc-set-prop com.lab126.appmgrd start "app://$APP_ID"
 
-# Power button refreshes screen (clears e-ink ghosting).
-# To close the app, use the X button in the dashboard UI.
-
+# Power button closes the app and restores Kindle UI
 script -f /dev/null -c "evtest /dev/input/event0" | while read line; do
     case "$line" in
         *"code 116 (Power), value 1"*)
-            echo "Power button: refreshing screen"
-            eips -f &> /dev/null
+            echo "Power button pressed"
+            browserPid=$(gdbus call -y -d org.freedesktop.DBus -o / -m org.freedesktop.DBus.GetConnectionUnixProcessID "$APP_ID" | sed -E 's/.* ([0-9]+),.*/\1/')
+            echo "Killing PID $browserPid"
+            kill $browserPid
+
+            start_system_gui
+            prevent_screensaver 0
+            exit
             ;;
     esac
 done

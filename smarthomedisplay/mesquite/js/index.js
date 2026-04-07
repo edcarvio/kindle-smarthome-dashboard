@@ -482,50 +482,38 @@ function centerPopup(popupEl) {
     }, 10);
 }
 
-// Lamp picker popup
+// Lamp picker popup (static HTML items — inline onclick for old WebKit)
 var lampPicker = document.getElementById('lampPicker');
-var lampPickerList = document.getElementById('lampPickerList');
-var lampPickerClose = document.getElementById('lampPickerClose');
 var lampControlBtn = document.getElementById('lampControlBtn');
 
-// Global function called by inline onclick in lamp picker items
-function selectLamp(entityId, name) {
+// Explicit window globals so inline onclick can find them on old WebKit
+window.selectLamp = function(entityId, name) {
     closeLampPicker();
     openLightPopup(entityId, name);
-}
+};
 
 function openLampPicker() {
-    var html = '';
-    for(var i = 0; i < buttons.length; i++) {
-        var button = buttons[i];
-        var entityId = button.dataset.entityId;
-        var titleEl = button.getElementsByClassName('title')[0];
-        var name = titleEl ? titleEl.innerText : entityId;
-        var isOn = button.classList.contains('active');
-        var attrs = entityAttrs[entityId] || {};
-        var infoText = (attrs.brightness && isOn) ? Math.round(attrs.brightness / 255 * 100) + '%' : '';
-        var dotClass = 'lamp-picker-dot' + (isOn ? ' on' : '');
-
-        html += '<div class="lamp-picker-item" onclick="selectLamp(\'' + entityId + '\',\'' + name + '\')">'
-            + '<div class="lamp-picker-status"><div class="' + dotClass + '"></div></div>'
-            + '<div class="lamp-picker-name">' + name + '</div>'
-            + (infoText ? '<div class="lamp-picker-info">' + infoText + '</div>' : '')
-            + '</div>';
+    // Update on/off dots from current button states
+    var dots = lampPicker.querySelectorAll('.lamp-picker-dot');
+    for(var i = 0; i < dots.length; i++) {
+        var eid = dots[i].dataset.entityId;
+        if(!eid) continue;
+        var btn = document.querySelector('.button[data-entity-id="' + eid + '"]');
+        if(btn && btn.classList.contains('active')) {
+            dots[i].className = 'lamp-picker-dot on';
+        } else {
+            dots[i].className = 'lamp-picker-dot';
+        }
     }
-    lampPickerList.innerHTML = html;
     lampPicker.style.display = 'block';
     centerPopup(lampPicker);
 }
 
-function closeLampPicker() {
+window.closeLampPicker = function() {
     lampPicker.style.display = 'none';
-}
+};
 
 lampControlBtn.onclick = function() { openLampPicker(); };
-lampPickerClose.onclick = function() { closeLampPicker(); };
-// Close picker when tapping overlay — use querySelectorAll to get the right one
-var pickerOverlay = lampPicker.getElementsByClassName('popup-overlay')[0];
-pickerOverlay.onclick = function() { closeLampPicker(); };
 
 // Light popup elements
 var lightPopup = document.getElementById('lightPopup');
@@ -660,60 +648,73 @@ function sendColorPreset(hs) {
 }
 
 function openLightPopup(entityId, title) {
-    var attrs = entityAttrs[entityId] || {};
-    popupEntityId = entityId;
-    popupTitle.innerText = title;
+    try {
+        var attrs = entityAttrs[entityId] || {};
+        popupEntityId = entityId;
+        popupTitle.innerText = title;
 
-    // Determine current on/off state from the button element
-    var buttonEl = document.querySelector('.button[data-entity-id="' + entityId + '"]');
-    popupIsOn = buttonEl ? buttonEl.classList.contains('active') : false;
-    updatePopupToggle();
-
-    // Brightness
-    var hasBrightness = lightHasBrightness(entityId);
-    popupBrightnessRow.style.display = hasBrightness ? 'block' : 'none';
-    if(hasBrightness) {
-        var bri = attrs.brightness || 128;
-        popupBrightness.value = bri;
-        popupBrightnessVal.innerText = Math.round(bri / 255 * 100) + '%';
-    }
-
-    // Color temperature
-    var hasColorTemp = lightHasColorTemp(entityId);
-    popupColorTempRow.style.display = hasColorTemp ? 'block' : 'none';
-    if(hasColorTemp) {
-        var minK = attrs.min_color_temp_kelvin || 2202;
-        var maxK = attrs.max_color_temp_kelvin || 4000;
-        popupColorTemp.min = minK;
-        popupColorTemp.max = maxK;
-        var ctVal = attrs.color_temp_kelvin || Math.round((minK + maxK) / 2);
-        popupColorTemp.value = ctVal;
-        popupColorTempVal.innerText = ctVal + 'K';
-    }
-
-    // Color presets
-    var hasColor = lightHasColor(entityId);
-    popupColorsRow.style.display = hasColor ? 'block' : 'none';
-    if(hasColor) {
-        buildColorGrid();
-        // Highlight closest preset to current HS color
-        if(attrs.hs_color) {
-            var curH = attrs.hs_color[0], curS = attrs.hs_color[1];
-            var bestIdx = -1, bestDist = 9999;
-            for(var i = 0; i < COLOR_PRESETS.length; i++) {
-                var dh = Math.abs(COLOR_PRESETS[i].hs[0] - curH);
-                if(dh > 180) dh = 360 - dh;
-                var ds = Math.abs(COLOR_PRESETS[i].hs[1] - curS);
-                var dist = dh + ds;
-                if(dist < bestDist) { bestDist = dist; bestIdx = i; }
-            }
-            if(bestIdx >= 0 && bestDist < 40) {
-                var allBtns = popupColorGrid.getElementsByClassName('popup-color-btn');
-                allBtns[bestIdx].className = 'popup-color-btn active';
+        // Determine current on/off state from the button element
+        var buttons2 = document.querySelectorAll('#buttonsWidget .button');
+        var popupBtnIsOn = false;
+        for(var bi = 0; bi < buttons2.length; bi++) {
+            if(buttons2[bi].dataset.entityId === entityId) {
+                popupBtnIsOn = buttons2[bi].classList.contains('active');
+                break;
             }
         }
+        popupIsOn = popupBtnIsOn;
+        updatePopupToggle();
+
+        // Brightness
+        var hasBrightness = lightHasBrightness(entityId);
+        popupBrightnessRow.style.display = hasBrightness ? 'block' : 'none';
+        if(hasBrightness) {
+            var bri = attrs.brightness || 128;
+            popupBrightness.setAttribute('value', bri);
+            popupBrightness.value = bri;
+            popupBrightnessVal.innerText = Math.round(bri / 255 * 100) + '%';
+        }
+
+        // Color temperature
+        var hasColorTemp = lightHasColorTemp(entityId);
+        popupColorTempRow.style.display = hasColorTemp ? 'block' : 'none';
+        if(hasColorTemp) {
+            var minK = attrs.min_color_temp_kelvin || 2202;
+            var maxK = attrs.max_color_temp_kelvin || 4000;
+            popupColorTemp.setAttribute('min', minK);
+            popupColorTemp.setAttribute('max', maxK);
+            var ctVal = attrs.color_temp_kelvin || Math.round((minK + maxK) / 2);
+            popupColorTemp.setAttribute('value', ctVal);
+            popupColorTemp.value = ctVal;
+            popupColorTempVal.innerText = ctVal + 'K';
+        }
+
+        // Color presets
+        var hasColor = lightHasColor(entityId);
+        popupColorsRow.style.display = hasColor ? 'block' : 'none';
+        if(hasColor) {
+            buildColorGrid();
+            if(attrs.hs_color) {
+                var curH = attrs.hs_color[0], curS = attrs.hs_color[1];
+                var bestIdx = -1, bestDist = 9999;
+                for(var i = 0; i < COLOR_PRESETS.length; i++) {
+                    var dh = Math.abs(COLOR_PRESETS[i].hs[0] - curH);
+                    if(dh > 180) dh = 360 - dh;
+                    var ds = Math.abs(COLOR_PRESETS[i].hs[1] - curS);
+                    var dist = dh + ds;
+                    if(dist < bestDist) { bestDist = dist; bestIdx = i; }
+                }
+                if(bestIdx >= 0 && bestDist < 40) {
+                    var allBtns = popupColorGrid.getElementsByClassName('popup-color-btn');
+                    if(allBtns[bestIdx]) allBtns[bestIdx].className = 'popup-color-btn active';
+                }
+            }
+        }
+    } catch(err) {
+        if(typeof logError === 'function') logError('openLightPopup: ' + err.message);
     }
 
+    // Always show popup even if setup had errors
     lightPopup.style.display = 'block';
     centerPopup(lightPopup);
 }
